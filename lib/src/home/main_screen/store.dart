@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class Store extends StatefulWidget {
+  const Store({super.key});
+
   @override
   _StoreState createState() => _StoreState();
 }
@@ -8,7 +10,7 @@ class Store extends StatefulWidget {
 class _StoreState extends State<Store> {
   @override
   Widget build(BuildContext context) =>
-    Scaffold(
-      body: Container(),
+    const Scaffold(
+      body: SizedBox.shrink(),
     );
 }

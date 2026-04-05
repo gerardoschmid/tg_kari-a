@@ -2,6 +2,8 @@ import 'package:duolingo/src/components/circle_avatar.dart';
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -10,7 +12,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Text _textCirle(String text) =>
       Text(
       text,
-      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
     );
 
 
@@ -78,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: Container(
                       margin: const EdgeInsets.only(left: 10, right: 15),
-                      child: Divider(
+                      child: const Divider(
                         color: Colors.black,
                         height: 50,
                       )),
@@ -90,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: Container(
                       margin: const EdgeInsets.only(left: 15, right: 10),
-                      child: Divider(
+                      child: const Divider(
                         color: Colors.black,
                         height: 50,
                       )),

@@ -11,11 +11,16 @@ class MyApp extends StatelessWidget {
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
-    ]); 
+    ]);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: "Duolingo",
-      theme: ThemeData(primaryColor: Colors.white),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSwatch().copyWith(
+          primary: Colors.white,
+          surface: Colors.white,
+        ),
+      ),
       home: WelcomeScreen(),
     );
   }

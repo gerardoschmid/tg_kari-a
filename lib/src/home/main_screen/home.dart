@@ -8,6 +8,8 @@ import 'package:duolingo/src/utils/images.dart';
 import 'package:flutter/material.dart';
 
 class Home extends StatefulWidget {
+  const Home({super.key});
+
   @override
   _HomeState createState() => _HomeState();
 }
@@ -15,24 +17,24 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   int _currentIndex = 0;
   final List<Widget> screens = [
-    HomeScreen(),
-    Profile(),
-    Ranking(),
-    Store(),
-    Stories(),
+    const HomeScreen(),
+    const Profile(),
+    const Ranking(),
+    const Store(),
+    const Stories(),
   ];
   final PageStorageBucket _bucket = PageStorageBucket();
-  Widget currentScreen = HomeScreen();
+  Widget currentScreen = const HomeScreen();
 
   @override
   Widget build(BuildContext context) {
     const double _iconSize = 41;
     const double _iconSizeSelected = 53;
-    final AppBarHomeScreen appBar = AppBarHomeScreen();
+    const AppBarHomeScreen appBar = AppBarHomeScreen();
 
     return Scaffold(
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(45),
+        appBar: const PreferredSize(
+          preferredSize: Size.fromHeight(45),
           child: appBar,
         ),
         body: PageStorage(
@@ -55,6 +57,13 @@ class _HomeState extends State<Home> {
           onTap: (int index) {
             setState(() {
               _currentIndex = index;
+              switch(index) {
+                case 0: currentScreen = const HomeScreen(); break;
+                case 1: currentScreen = const Stories(); break;
+                case 2: currentScreen = const Profile(); break;
+                case 3: currentScreen = const Ranking(); break;
+                case 4: currentScreen = const Store(); break;
+              }
             });
           },
           items: [
@@ -66,12 +75,12 @@ class _HomeState extends State<Home> {
                 onPressed: () {
                   setState(() {
                     _currentIndex = 0;
-                    currentScreen = HomeScreen();
+                    currentScreen = const HomeScreen();
                   });
                 },
                 iconSize: _currentIndex == 0 ? _iconSizeSelected : _iconSize,
               ),
-              title: const Padding(padding: EdgeInsets.all(0)),
+              label: '',
             ),
             BottomNavigationBarItem(
               icon: IconButton(
@@ -81,12 +90,12 @@ class _HomeState extends State<Home> {
                 onPressed: () {
                   setState(() {
                     _currentIndex = 1;
-                    currentScreen = Stories();
+                    currentScreen = const Stories();
                   });
                 },
                 iconSize: _currentIndex == 1 ? _iconSizeSelected : _iconSize,
               ),
-              title: const Padding(padding: EdgeInsets.all(0)),
+              label: '',
             ),
             BottomNavigationBarItem(
               icon: IconButton(
@@ -96,12 +105,12 @@ class _HomeState extends State<Home> {
                 onPressed: () {
                   setState(() {
                     _currentIndex = 2;
-                    currentScreen = Profile();
+                    currentScreen = const Profile();
                   });
                 },
                 iconSize: _currentIndex == 2 ? _iconSizeSelected : _iconSize,
               ),
-              title: const Padding(padding: EdgeInsets.all(0)),
+              label: '',
             ),
             BottomNavigationBarItem(
               icon: IconButton(
@@ -111,12 +120,12 @@ class _HomeState extends State<Home> {
                 onPressed: () {
                   setState(() {
                     _currentIndex = 3;
-                    currentScreen = Ranking();
+                    currentScreen = const Ranking();
                   });
                 },
                 iconSize: _currentIndex == 3 ? _iconSizeSelected : _iconSize,
               ),
-              title: const Padding(padding: EdgeInsets.all(0)),
+              label: '',
             ),
             BottomNavigationBarItem(
               icon: IconButton(
@@ -125,12 +134,12 @@ class _HomeState extends State<Home> {
                 onPressed: () {
                   setState(() {
                     _currentIndex = 4;
-                    currentScreen = Store();
+                    currentScreen = const Store();
                   });
                 },
                 iconSize: _currentIndex == 4 ? _iconSizeSelected : _iconSize,
               ),
-              title: const Padding(padding: EdgeInsets.all(0)),
+              label: '',
             ),
           ],
         ));
