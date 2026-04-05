@@ -1,7 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class Profile extends StatefulWidget {
+  const Profile({super.key});
+
   @override
   _ProfileState createState() => _ProfileState();
 }
@@ -10,7 +11,7 @@ class _ProfileState extends State<Profile> {
   _titleText(String text) {
     return Text(
       text,
-      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+      style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
     );
   }
 
@@ -50,17 +51,14 @@ class _ProfileState extends State<Profile> {
                             ),
                             height: 80,
                             width: 170,
-                            child: Text("hello"),
+                            child: const Text("hello"),
                           ),
                         ),
                         Card(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+                          child: SizedBox(
                             height: 80,
                             width: 170,
-                            child: ListTile(
+                            child: const ListTile(
                                 leading: Icon(
                                   Icons.cloud_circle,
                                   color: Colors.amber,
@@ -85,7 +83,7 @@ class _ProfileState extends State<Profile> {
                             ),
                             height: 80,
                             width: 170,
-                            child: Text("hello"),
+                            child: const Text("hello"),
                           ),
                         ),
                         Card(
@@ -95,7 +93,7 @@ class _ProfileState extends State<Profile> {
                             ),
                             height: 80,
                             width: 170,
-                            child: Text("hello"),
+                            child: const Text("hello"),
                           ),
                         ),
                       ],
@@ -105,7 +103,7 @@ class _ProfileState extends State<Profile> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: <Widget>[
                         _titleText("Amigos"),
-                        Text("ADICIONAR AMIGOS", style: TextStyle(
+                        const Text("ADICIONAR AMIGOS", style: TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold,
                           color: Colors.lightBlue),),
                       ],

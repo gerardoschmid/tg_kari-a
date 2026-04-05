@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class Stories extends StatefulWidget {
+  const Stories({super.key});
+
   @override
   _StoriesState createState() => _StoriesState();
 }
@@ -8,7 +10,7 @@ class Stories extends StatefulWidget {
 class _StoriesState extends State<Stories> {
   @override
   Widget build(BuildContext context) =>
-    Scaffold(
-      body: Container(),
+    const Scaffold(
+      body: SizedBox.shrink(),
     );
 }

@@ -6,24 +6,26 @@ import 'package:duolingo/src/home/main_screen/home.dart';
 import 'package:flutter/material.dart';
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
   _LoginPageState createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  static final GlobalKey _formKey = GlobalKey<FormState>();
+  static final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _controllerLogin = TextEditingController();
   final TextEditingController _controllerPassword = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    Future _onClickGoogle() async {
+    Future<void> _onClickGoogle() async {
       final FirebaseService service = FirebaseService();
       ApiResponse response = await service.loginGoogle();
 
-      if (response.ok) {
+      if (response.ok && mounted) {
         await Navigator.push(
-            context, MaterialPageRoute(builder: (context) => Home()));
+            context, MaterialPageRoute(builder: (context) => const Home()));
       }
     }
 
@@ -53,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     LoginTextField(
                       context,
-                      "Usuário ou email",
+                      "Usuário o email",
                       controller: _controllerLogin,
                     ),
                     LoginTextField(
@@ -77,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     InkWell(
                       onTap: () {},
-                      child: Text(
+                      child: const Text(
                         "ESQUECI A SENHA",
                         style: TextStyle(
                           color: Colors.lightBlueAccent,
@@ -92,8 +94,11 @@ class _LoginPageState extends State<LoginPage> {
                         margin: const EdgeInsets.all(16),
                         height: 60,
                         width: constraints.maxWidth,
-                        child: RaisedButton(
-                          color: Colors.grey.shade100,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey.shade100,
+                            foregroundColor: Colors.black,
+                          ),
                           onPressed: _onClickGoogle,
                           child: const Text("Sign in with Google"),
                         )),

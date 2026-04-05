@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'login_page.dart';
 
 class WelcomeScreen extends StatelessWidget {
+  const WelcomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,7 +51,7 @@ class WelcomeScreen extends StatelessWidget {
                       _button("JÁ TENHO UMA CONTA", color: Colors.white,
                           onPressed: () {
                         Navigator.push(context,
-                            MaterialPageRoute(builder: (context) => LoginPage()));
+                            MaterialPageRoute(builder: (context) => const LoginPage()));
                       }, colorText: Colors.green),
                     ],
                   ),
@@ -58,24 +60,28 @@ class WelcomeScreen extends StatelessWidget {
     );
   }
 
-  Container _button(String text,
-          {Color color, Color colorText, Function onPressed}) =>
+  Widget _button(String text,
+          {Color? color, Color? colorText, VoidCallback? onPressed}) =>
       Container(
         width: 350,
         height: 60,
         decoration: BoxDecoration(boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.5),
+            color: Colors.grey.withAlpha(128),
             spreadRadius: 2,
             blurRadius: 12,
             offset: const Offset(0, 2),
           ),
         ]),
-        child: RaisedButton(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: color,
+            foregroundColor: colorText,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 0, // Since container has manual shadow
           ),
-          color: color,
           onPressed: onPressed,
           child: Text(
             text,

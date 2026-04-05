@@ -3,18 +3,19 @@ import 'package:flutter/material.dart';
 class LoginTextField extends StatelessWidget {
   final String hintText;
   final BuildContext context;
-  final TextEditingController controller;
+  final TextEditingController? controller;
   final bool obscure;
-  final FormFieldValidator<String> validator;
-  final TextInputType keyboardType;
-  final int maxLength;
-  final TextInputAction textInputAction;
-  final FocusNode focusNode;
-  final FocusNode nextFocus;
+  final FormFieldValidator<String>? validator;
+  final TextInputType? keyboardType;
+  final int? maxLength;
+  final TextInputAction? textInputAction;
+  final FocusNode? focusNode;
+  final FocusNode? nextFocus;
 
-  LoginTextField(
+  const LoginTextField(
     this.context,
     this.hintText, {
+    super.key,
     this.controller,
     this.obscure = false,
     this.validator,
@@ -40,11 +41,11 @@ class LoginTextField extends StatelessWidget {
             hintText: hintText,
             contentPadding: const EdgeInsets.only(left: 14, bottom: 8, top: 8),
             focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.white),
+              borderSide: const BorderSide(color: Colors.white),
               borderRadius: BorderRadius.circular(8),
             ),
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.white),
+              borderSide: const BorderSide(color: Colors.white),
               borderRadius: BorderRadius.circular(8),
             ),
           ),

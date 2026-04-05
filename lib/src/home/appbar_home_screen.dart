@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class AppBarHomeScreen extends StatelessWidget {
+  const AppBarHomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return AppBar(
@@ -21,7 +23,7 @@ class AppBarHomeScreen extends StatelessWidget {
                   ),
                   onPressed: () {},
                 ),
-                Text(
+                const Text(
                   "67",
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
@@ -38,7 +40,7 @@ class AppBarHomeScreen extends StatelessWidget {
                   ),
                   onPressed: () {},
                 ),
-                Text("50",
+                const Text("50",
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.grey,
@@ -54,7 +56,7 @@ class AppBarHomeScreen extends StatelessWidget {
                   ),
                   onPressed: () {},
                 ),
-                Text(
+                const Text(
                   "130",
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
