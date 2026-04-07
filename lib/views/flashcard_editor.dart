@@ -1,115 +1,82 @@
 import 'package:flutter/material.dart';
-import 'package:karina_app/models/deck.dart';
+import 'package:provider/provider.dart';
 import 'package:karina_app/models/flashcard.dart';
-import 'package:karina_app/utils/db_helper.dart';
+import 'package:karina_app/providers/deck_provider.dart';
 
 class FlashcardEditor extends StatefulWidget {
-  final String initialQue;
-  final String initialAns;
   final int deckId;
   final int flashcardId;
-  final List<Deck> decks;
   final bool canBeDeleted;
+  final Flashcard? flashcard;
 
   const FlashcardEditor({
     super.key,
-    required this.initialQue,
-    required this.initialAns,
     required this.canBeDeleted,
-    required this.decks,
     required this.deckId,
     required this.flashcardId,
+    this.flashcard,
   });
   @override
   State<FlashcardEditor> createState() => _FlashcardEditorState();
 }
 
 class _FlashcardEditorState extends State<FlashcardEditor> {
-  TextEditingController queController = TextEditingController();
-  TextEditingController ansController = TextEditingController();
+  final TextEditingController _spanishController = TextEditingController();
+  final TextEditingController _karinaController = TextEditingController();
+  final TextEditingController _categoryController = TextEditingController();
+  final TextEditingController _exampleController = TextEditingController();
+  int _difficulty = 1;
 
   @override
   void initState() {
     super.initState();
-    queController.text = widget.initialQue;
-    ansController.text = widget.initialAns;
+    if (widget.flashcard != null) {
+      _spanishController.text = widget.flashcard!.spanish;
+      _karinaController.text = widget.flashcard!.karina;
+      _categoryController.text = widget.flashcard!.category;
+      _exampleController.text = widget.flashcard!.exampleSentence ?? '';
+      _difficulty = widget.flashcard!.difficultyLevel ?? 1;
+    } else {
+      _categoryController.text = 'General';
+    }
   }
 
   @override
   void dispose() {
-    queController.dispose();
-    ansController.dispose();
+    _spanishController.dispose();
+    _karinaController.dispose();
+    _categoryController.dispose();
+    _exampleController.dispose();
     super.dispose();
   }
 
   void applyChanges() async {
-    String updatedQue = queController.text;
-    String updatedAns = ansController.text;
+    Flashcard flashcard = Flashcard(
+      id: widget.flashcardId == 0 ? null : widget.flashcardId,
+      deckId: widget.deckId,
+      category: _categoryController.text,
+      spanish: _spanishController.text,
+      karina: _karinaController.text,
+      exampleSentence: _exampleController.text,
+      difficultyLevel: _difficulty,
+    );
 
-    // If the flashcard is new, add it to the deck
+    final deckProvider = Provider.of<DeckProvider>(context, listen: false);
+
     if (!widget.canBeDeleted) {
-      Flashcard newFlashcard = Flashcard(
-        id: DateTime.now().millisecondsSinceEpoch,
-        deckId: widget.deckId,
-        question: updatedQue,
-        answer: updatedAns,
-      );
-
-      widget.decks.map((deck) {
-        if (deck.id == widget.deckId) {
-          return Deck(
-            // id: DateTime.now().millisecondsSinceEpoch,
-            title: deck.title,
-            flashcards: [...deck.flashcards, newFlashcard],
-          );
-        }
-        return deck;
-      }).toList();
-      await DBHelper().insert('flashcard', {
-        'deckId': widget.deckId,
-        'question': updatedQue,
-        'answer': updatedAns,
-      });
-      if (mounted) {
-        Navigator.pop(context, true);
-      }
-
+      await deckProvider.addFlashcard(flashcard);
     } else {
-      // If the flashcard is being edited, update it in the deck
-      widget.decks.map((deck) {
-        if (deck.id == widget.deckId) {
-          List<Flashcard> updatedFlashcards = deck.flashcards.map((flashcard) {
-            if (flashcard.question == widget.initialQue) {
-              return Flashcard(
-                id: widget.flashcardId,
-                deckId: widget.deckId,
-                question: updatedQue,
-                answer: updatedAns,
-              );
-            }
-            return flashcard;
-          }).toList();
-          return Deck(
-            id: widget.deckId,
-            title: deck.title,
-            flashcards: updatedFlashcards,
-          );
-        }
-        return deck;
-      }).toList();
-      await DBHelper().update('flashcard', {
-        'question': updatedQue,
-        'answer': updatedAns,
-      }, 'id = ?', [widget.flashcardId]);
-      if (mounted) {
-        Navigator.pop(context, true);
-      }
+      await deckProvider.updateFlashcard(flashcard);
+    }
+
+    if (mounted) {
+      Navigator.pop(context, true);
     }
   }
 
-  // Remove flashcard from database
   void deleteFlashcard() async {
-    await DBHelper().delete('flashcard', 'id = ?', [widget.flashcardId]);
+    final deckProvider = Provider.of<DeckProvider>(context, listen: false);
+    await deckProvider.deleteFlashcard(widget.flashcardId);
     if (mounted) {
       Navigator.pop(context, true);
     }
@@ -119,67 +86,92 @@ class _FlashcardEditorState extends State<FlashcardEditor> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.green[400],
-        title: const Center(
-          child: Text(
-            'Flashcard Editor',
-            style: TextStyle(color: Colors.white),
-          ),
+        backgroundColor: Colors.green[700],
+        title: Text(
+          widget.canBeDeleted ? 'Editar Tarjeta' : 'Nueva Tarjeta',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      backgroundColor: Colors.green[50],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: <Widget>[
+            _buildTextField(_categoryController, 'Categoría'),
+            const SizedBox(height: 16),
+            _buildTextField(_spanishController, 'Español'),
+            const SizedBox(height: 16),
+            _buildTextField(_karinaController, 'Kariña'),
+            const SizedBox(height: 16),
+            _buildTextField(_exampleController, 'Frase de Ejemplo', maxLines: 2),
+            const SizedBox(height: 24),
+            const Text('Nivel de Dificultad', style: TextStyle(fontWeight: FontWeight.bold)),
+            Slider(
+              value: _difficulty.toDouble(),
+              min: 1,
+              max: 3,
+              divisions: 2,
+              label: _difficulty.toString(),
+              onChanged: (double value) {
+                setState(() {
+                  _difficulty = value.toInt();
+                });
+              },
+              activeColor: Colors.green[700],
+            ),
+            const SizedBox(height: 32),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[700],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  ),
+                  onPressed: applyChanges,
+                  child: const Text('Guardar'),
+                ),
+                if (widget.canBeDeleted) ...[
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red[400],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    ),
+                    onPressed: deleteFlashcard,
+                    child: const Text('Eliminar'),
+                  ),
+                ],
+              ],
+            ),
+          ],
         ),
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              TextField(
-                controller: queController,
-                decoration: const InputDecoration(
-                  labelText: 'Question',
-                ),
-              ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: ansController,
-                decoration: const InputDecoration(
-                  labelText: 'Answer',
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  TextButton(
-                    style: ButtonStyle(
-                        foregroundColor: MaterialStateProperty.all(Colors.white),
-                        backgroundColor: MaterialStateProperty.all(Colors.blue[300]),
-                      ),
-                    onPressed: applyChanges,
-                    child: const Text('Save'),
-                  ),
-                  const SizedBox(width: 16),
-                  if (widget.canBeDeleted)
-                    TextButton(
-                      style: ButtonStyle(
-                        foregroundColor: MaterialStateProperty.all(Colors.white),
-                        backgroundColor: MaterialStateProperty.all(Colors.red[300]),
-                      ),
-                      onPressed: deleteFlashcard,
-                      child: const Text('Delete'),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        )
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label, {int maxLines = 1}) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.brown),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Colors.green, width: 2),
+        ),
       ),
     );
   }

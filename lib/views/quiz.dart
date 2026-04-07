@@ -1,17 +1,15 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:karina_app/models/deck.dart';
 import 'package:karina_app/models/flashcard.dart';
 import 'package:karina_app/utils/db_helper.dart';
 
 class QuizPage extends StatefulWidget {
   final String deckTitle;
-  final List<Deck> decks;
   final int deckId;
 
   const QuizPage({
     super.key,
     required this.deckTitle,
-    required this.decks,
     required this.deckId,
   });
 
@@ -20,184 +18,203 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
-  late Future<List<Flashcard>> _flashcards;
-  List<Flashcard> flashcards = [];
-  final List questionsShown = [];
-  List listOfIndexes = [];
-  int currentQueIndex = 0;
-  int revealedAnswers = 0;
-  int totalAnsweredQuestions = 0;
-  bool isAnswerVisible = false;
-  bool greenBackgroundEnabled = false;
-
-  Future<List<Flashcard>> loadFlashcards() async {
-    final flashcards1 = await DBHelper().query(
-      'flashcard',
-      where: 'deckId = ${widget.deckId}',
-    );
-    List<Flashcard> mappedFlashcards = flashcards1
-        .map((e) => Flashcard(
-              id: e['id'] as int,
-              deckId: e['deckId'] as int,
-              question: e['question'] as String,
-              answer: e['answer'] as String,
-            ))
-        .toList();
-    updateQuestionProgress(currentQueIndex);
-    mappedFlashcards.shuffle();
-    return mappedFlashcards;
-  }
+  late Future<List<Flashcard>> _flashcardsFuture;
+  List<Flashcard> allFlashcards = [];
+  int currentQuestionIndex = 0;
+  int score = 0;
+  List<String> currentOptions = [];
+  bool hasAnswered = false;
+  String? selectedOption;
 
   @override
   void initState() {
     super.initState();
-    _flashcards = loadFlashcards();
+    _flashcardsFuture = _loadFlashcards();
   }
 
-  void revealAnswer() {
+  Future<List<Flashcard>> _loadFlashcards() async {
+    final List<Map<String, dynamic>> maps = await DBHelper().query(
+      'flashcard',
+      where: 'deckId = ?',
+      whereArgs: [widget.deckId],
+    );
+    allFlashcards = maps.map((e) => Flashcard.fromMap(e)).toList();
+    allFlashcards.shuffle();
+    _generateOptions();
+    return allFlashcards;
+  }
+
+  void _generateOptions() {
+    if (allFlashcards.isEmpty) return;
+
+    final currentFlashcard = allFlashcards[currentQuestionIndex];
+    List<String> options = [currentFlashcard.karina];
+
+    // Get other words from the same deck (or all words if small)
+    List<String> otherWords = allFlashcards
+        .where((f) => f.karina != currentFlashcard.karina)
+        .map((f) => f.karina)
+        .toList();
+
+    otherWords.shuffle();
+    options.addAll(otherWords.take(2));
+
+    // If not enough words in deck, add some generic placeholders
+    while (options.length < 3) {
+      options.add("Palabra ${options.length + 1}");
+    }
+
+    options.shuffle();
+    currentOptions = options;
+  }
+
+  void _checkAnswer(String option) {
+    if (hasAnswered) return;
+
     setState(() {
-      if (!isAnswerVisible) {
-        isAnswerVisible = true;
-        greenBackgroundEnabled = true;
-        final currentQue = flashcards[currentQueIndex].question;
-        if (!questionsShown.contains(currentQue)) {
-          questionsShown.add(currentQue);
-          revealedAnswers++;
-        }
-      } else {
-        isAnswerVisible = false;
-        greenBackgroundEnabled = false;
+      hasAnswered = true;
+      selectedOption = option;
+      if (option == allFlashcards[currentQuestionIndex].karina) {
+        score++;
       }
     });
   }
 
-  void updateQuestionProgress(queIndex) {
-    setState(() {
-      isAnswerVisible = false;
-      greenBackgroundEnabled = false;
-      if (!listOfIndexes.contains(queIndex) &&
-          listOfIndexes.length < flashcards.length + 1) {
-        listOfIndexes.add(queIndex);
-        totalAnsweredQuestions++;
-      }
-    });
+  void _nextQuestion() {
+    if (currentQuestionIndex < allFlashcards.length - 1) {
+      setState(() {
+        currentQuestionIndex++;
+        hasAnswered = false;
+        selectedOption = null;
+        _generateOptions();
+      });
+    } else {
+      _showResultDialog();
+    }
   }
 
-  void loadNextQuestion() {
-    setState(() {
-      currentQueIndex = (currentQueIndex + 1) % flashcards.length;
-      updateQuestionProgress(currentQueIndex);
-    });
-  }
-
-  void loadPreviousQuestion() {
-    setState(() {
-      currentQueIndex =
-          (currentQueIndex - 1 + flashcards.length) % flashcards.length;
-      updateQuestionProgress(currentQueIndex);
-    });
-  }
-
-  int displayTotalAnsweredQuestions() {
-    return totalAnsweredQuestions == 0 ? 1 : totalAnsweredQuestions;
+  void _showResultDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('¡Quiz Terminado!'),
+        content: Text('Tu puntaje es $score de ${allFlashcards.length}'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Go back to list
+            },
+            child: const Text('Volver'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: _flashcards,
-      initialData: const [],
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        } else {
-          flashcards =
-              snapshot.hasData ? snapshot.data as List<Flashcard> : flashcards;
-          return Scaffold(
-            appBar: AppBar(
-              backgroundColor: Colors.green[400],
-              title: Center(
-                child: Text(
-                  widget.deckTitle,
-                  style: const TextStyle(color: Colors.white),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.deckTitle),
+        backgroundColor: Colors.green[400],
+      ),
+      body: FutureBuilder<List<Flashcard>>(
+        future: _flashcardsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No hay tarjetas en este mazo.'));
+          }
+
+          final currentFlashcard = allFlashcards[currentQuestionIndex];
+
+          return Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Pregunta ${currentQuestionIndex + 1} de ${allFlashcards.length}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 16),
                 ),
-              ),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                    color: Colors.white),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-              ),
-            ),
-            body: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width - 32,
-                    height: (MediaQuery.of(context).size.height * 0.5) - 32,
-                    child: Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      color: greenBackgroundEnabled
-                          ? Colors.green[300]
-                          : Colors.indigoAccent[100],
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Text(
-                            isAnswerVisible
-                                ? flashcards[currentQueIndex].answer!
-                                : flashcards[currentQueIndex].question!,
-                            style: const TextStyle(fontSize: 18),
-                            textAlign: TextAlign.center,
+                const SizedBox(height: 20),
+                Text(
+                  '¿Cómo se dice "${currentFlashcard.spanish}" en Kariña?',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.brown,
+                  ),
+                ),
+                const SizedBox(height: 40),
+                ...currentOptions.map((option) {
+                  bool isCorrect = option == currentFlashcard.karina;
+                  bool isSelected = option == selectedOption;
+
+                  Color? btnColor = Colors.white;
+                  if (hasAnswered) {
+                    if (isCorrect) {
+                      btnColor = Colors.green[100];
+                    } else if (isSelected) {
+                      btnColor = Colors.red[100];
+                    }
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: btnColor,
+                        foregroundColor: Colors.brown,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          side: BorderSide(
+                            color: isSelected ? Colors.brown : Colors.grey[300]!,
+                            width: 2,
                           ),
                         ),
                       ),
+                      onPressed: () => _checkAnswer(option),
+                      child: Text(
+                        option,
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 40),
+                if (hasAnswered)
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                    onPressed: _nextQuestion,
+                    child: Text(
+                      currentQuestionIndex < allFlashcards.length - 1
+                          ? 'Siguiente'
+                          : 'Finalizar',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        onPressed: loadPreviousQuestion,
-                        icon: const Icon(Icons.arrow_back_ios_rounded),
-                      ),
-                      const SizedBox(width: 16),
-                      IconButton(
-                        onPressed: revealAnswer,
-                        icon: isAnswerVisible
-                            ? const Icon(Icons.lock_open_rounded)
-                            : const Icon(Icons.lock_rounded),
-                      ),
-                      const SizedBox(width: 16),
-                      IconButton(
-                        onPressed: loadNextQuestion,
-                        icon: const Icon(Icons.arrow_forward_ios_rounded),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Seen $totalAnsweredQuestions of ${flashcards.length} cards',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  Text(
-                    'Peeked at $revealedAnswers of ${displayTotalAnsweredQuestions()} answers',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ],
-              ),
+              ],
             ),
           );
-        }
-      },
+        },
+      ),
     );
   }
 }

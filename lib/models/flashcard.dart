@@ -3,49 +3,56 @@ import 'package:karina_app/utils/db_helper.dart';
 class Flashcard {
   int? id;
   int deckId;
-  String question;
-  String answer;
+  String category;
+  String spanish;
+  String karina;
+  String? audioPath;
+  String? exampleSentence;
+  int? difficultyLevel;
 
   Flashcard({
-    required this.id,
+    this.id,
     required this.deckId,
-    required this.question,
-    required this.answer,
+    required this.category,
+    required this.spanish,
+    required this.karina,
+    this.audioPath,
+    this.exampleSentence,
+    this.difficultyLevel,
   });
 
   Map<String, Object?> toMap() {
     return {
       'id': id,
       'deckId': deckId,
-      'question': question,
-      'answer': answer,
+      'category': category,
+      'spanish': spanish,
+      'karina': karina,
+      'audioPath': audioPath,
+      'exampleSentence': exampleSentence,
+      'difficultyLevel': difficultyLevel,
     };
   }
 
-  static Flashcard fromMap(flashcardMap) {
+  static Flashcard fromMap(Map<String, dynamic> flashcardMap) {
     return Flashcard(
-      id: flashcardMap['id'] as int,
+      id: flashcardMap['id'] as int?,
       deckId: flashcardMap['deckId'] as int,
-      question: flashcardMap['question'] as String,
-      answer: flashcardMap['answer'] as String,
+      category: flashcardMap['category'] as String,
+      spanish: flashcardMap['spanish'] as String,
+      karina: flashcardMap['karina'] as String,
+      audioPath: flashcardMap['audioPath'] as String?,
+      exampleSentence: flashcardMap['exampleSentence'] as String?,
+      difficultyLevel: flashcardMap['difficultyLevel'] as int?,
     );
   }
 
   Future<void> dbSave() async {
-    // update our id with the newly inserted record's id
-    id = await DBHelper().insert('flashcard', {
-      'question': question,
-      'answer': answer,
-      'deckId': deckId,
-    });
+    id = await DBHelper().insert('flashcard', toMap());
   }
 
   Future<void> dbUpdate() async {
-    await DBHelper().update('flashcard', {
-      'question': question,
-      'answer': answer,
-      'deckId': deckId,
-    }, 'id = ?', [id]);
+    await DBHelper().update('flashcard', toMap(), 'id = ?', [id]);
   }
 
   Future<void> dbDelete() async {

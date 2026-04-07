@@ -3,7 +3,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DBHelper {
-  static const String _databaseName = 'flashcards.db';
+  static const String _databaseName = 'karina_flashcards.db'; // Renamed to avoid conflicts with old schema
   static const int _databaseVersion = 1;
 
   DBHelper._(); // private constructor (can't be called from outside)
@@ -27,27 +27,29 @@ class DBHelper {
     var dbDir = await getApplicationDocumentsDirectory();
     var dbPath = path.join(dbDir.path, _databaseName);
 
-    // print(dbPath);
-    // await deleteDatabase(dbPath); // nuke the database (for testing)
-
     var db = await openDatabase(
       dbPath,
       version: _databaseVersion,
       onCreate: (Database db, int version) async {
-        // create the customer table
+        // create the deck table
         await db.execute('''
           CREATE TABLE deck(
-            id INTEGER PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL
           )
         ''');
+        // create the flashcard table with new schema
         await db.execute('''
           CREATE TABLE flashcard(
-            id INTEGER PRIMARY KEY,
-            question TEXT NOT NULL,
-            answer TEXT NOT NULL,
-            deckId INTEGER,
-            FOREIGN KEY (deckId) REFERENCES deck (id)
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            deckId INTEGER NOT NULL,
+            category TEXT NOT NULL,
+            spanish TEXT NOT NULL,
+            karina TEXT NOT NULL,
+            audioPath TEXT,
+            exampleSentence TEXT,
+            difficultyLevel INTEGER,
+            FOREIGN KEY (deckId) REFERENCES deck (id) ON DELETE CASCADE
           )
         ''');
       }
@@ -56,10 +58,9 @@ class DBHelper {
   }
 
   // fetch records from a table with an optional "where" clause
-  Future<List<Map<String, dynamic>>> query(String table, {String? where}) async {
+  Future<List<Map<String, dynamic>>> query(String table, {String? where, List<dynamic>? whereArgs}) async {
     final db = await this.db;
-    return where == null ? db.query(table)
-                         : db.query(table, where: where);
+    return db.query(table, where: where, whereArgs: whereArgs);
   }
 
   // insert a record into a table
@@ -93,11 +94,12 @@ class DBHelper {
       whereArgs: whereArgs,
     );
   }
+
   Future<void> deleteDeckAndRelatedFlashcards(int deckId) async {
     final db = await this.db;
     await db.transaction((txn) async {
       await txn.delete('flashcard', where: 'deckId = ?', whereArgs: [deckId]);
       await txn.delete('deck', where: 'id = ?', whereArgs: [deckId]);
-  });
-}
+    });
+  }
 }
