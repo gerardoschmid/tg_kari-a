@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:karina_app/models/flashcard.dart';
 import 'package:karina_app/providers/deck_provider.dart';
-import 'package:karina_app/views/flashcard_editor.dart';
 import 'package:karina_app/views/karina_card.dart';
 import 'package:karina_app/views/quiz.dart';
 
@@ -78,46 +76,14 @@ class _FlashcardListState extends State<FlashcardList> {
                 padding: const EdgeInsets.only(bottom: 12.0),
                 child: KarinaCard(
                   flashcard: flashcard,
-                  onTap: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => FlashcardEditor(
-                          deckId: widget.deckId,
-                          flashcardId: flashcard.id ?? 0,
-                          canBeDeleted: true,
-                          flashcard: flashcard,
-                        ),
-                      ),
-                    );
-                    if (result == true && mounted) {
-                      Provider.of<DeckProvider>(context, listen: false).loadDecks(context);
-                    }
+                  onTap: () {
+                    // Just show the card or do nothing
                   },
                 ),
               );
             },
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.green[700],
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => FlashcardEditor(
-                deckId: widget.deckId,
-                flashcardId: 0,
-                canBeDeleted: false,
-              ),
-            ),
-          );
-          if (result == true && mounted) {
-            Provider.of<DeckProvider>(context, listen: false).loadDecks(context);
-          }
-        },
-        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

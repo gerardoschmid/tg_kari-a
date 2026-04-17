@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:karina_app/models/deck.dart';
 import 'package:karina_app/providers/deck_provider.dart';
-import 'package:karina_app/views/deck_editor.dart';
 import 'package:karina_app/views/flashcard_list.dart';
 
 class DeckList extends StatefulWidget {
@@ -65,25 +64,6 @@ class _DeckListState extends State<DeckList> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.green[700],
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const DeckEditor(
-                deckIndex: 0,
-                deckTitle: '',
-                isBeingCreated: true,
-              ),
-            ),
-          );
-          if (result == true && mounted) {
-            Provider.of<DeckProvider>(context, listen: false).loadDecks(context);
-          }
-        },
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
     );
   }
 
@@ -125,24 +105,6 @@ class _DeckListState extends State<DeckList> {
             Text(
               '${deck.flashcards.length} tarjetas',
               style: TextStyle(color: Colors.grey[600]),
-            ),
-            IconButton(
-              icon: const Icon(Icons.edit, size: 20, color: Colors.grey),
-              onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => DeckEditor(
-                      deckIndex: deck.id ?? 0,
-                      deckTitle: deck.title,
-                      isBeingCreated: false,
-                    ),
-                  ),
-                );
-                if (result == true && mounted) {
-                  Provider.of<DeckProvider>(context, listen: false).loadDecks(context);
-                }
-              },
             ),
           ],
         ),

@@ -68,29 +68,4 @@ class DeckProvider with ChangeNotifier {
     }
   }
 
-  Future<void> addDeck(String title) async {
-    await DBHelper().insert('deck', {'title': title});
-    // For simplicity, we just reload all
-    // In a real app, we might want to be more efficient
-  }
-
-  Future<void> updateDeck(int id, String title) async {
-    await DBHelper().update('deck', {'title': title}, 'id = ?', [id]);
-  }
-
-  Future<void> deleteDeck(int id) async {
-    await DBHelper().deleteDeckAndRelatedFlashcards(id);
-  }
-
-  Future<void> addFlashcard(Flashcard flashcard) async {
-    await DBHelper().insert('flashcard', flashcard.toMap());
-  }
-
-  Future<void> updateFlashcard(Flashcard flashcard) async {
-    await DBHelper().update('flashcard', flashcard.toMap(), 'id = ?', [flashcard.id]);
-  }
-
-  Future<void> deleteFlashcard(int id) async {
-    await DBHelper().delete('flashcard', 'id = ?', [id]);
-  }
 }

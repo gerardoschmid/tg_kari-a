@@ -1,4 +1,4 @@
-package com.gerardo.karina.karina_app
+package com.flutter.duolingo
 
 import io.flutter.embedding.android.FlutterActivity
 
