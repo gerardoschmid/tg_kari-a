@@ -4,17 +4,19 @@ class QuizResults extends StatelessWidget {
   final int score;
   final int totalQuestions;
   final String timeSpent;
+  final int livesRemaining;
 
   const QuizResults({
     super.key,
     required this.score,
     required this.totalQuestions,
     required this.timeSpent,
+    required this.livesRemaining,
   });
 
   @override
   Widget build(BuildContext context) {
-    final double percentage = (score / totalQuestions) * 100;
+    final double percentage = totalQuestions > 0 ? (score / totalQuestions) * 100 : 0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5E6D3), // Light cream/parchment
@@ -25,10 +27,10 @@ class QuizResults extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                '¡Excelente Esfuerzo!',
+              Text(
+                percentage >= 80 ? '¡Ayombo! (¡Bien!)' : '¡Excelente Esfuerzo!',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF5D4037), // Deep brown
@@ -65,7 +67,14 @@ class QuizResults extends StatelessWidget {
                 icon: Icons.timer,
                 color: const Color(0xFFEF6C00), // Earthy orange
               ),
-              const SizedBox(height: 60),
+              const SizedBox(height: 16),
+              _buildResultCard(
+                title: 'Vidas Restantes',
+                value: '$livesRemaining',
+                icon: Icons.favorite,
+                color: Colors.red,
+              ),
+              const SizedBox(height: 40),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF5D4037),
