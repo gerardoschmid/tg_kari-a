@@ -3,13 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:karina_app/models/flashcard.dart';
 import 'dart:async';
 
-class MatchingGame extends StatefulWidget {
+class KarinaMatchingView extends StatefulWidget {
   final List<Flashcard> flashcards;
   final VoidCallback onCorrect;
   final VoidCallback onIncorrect;
   final VoidCallback onAllMatched;
 
-  const MatchingGame({
+  const KarinaMatchingView({
     super.key,
     required this.flashcards,
     required this.onCorrect,
@@ -18,10 +18,10 @@ class MatchingGame extends StatefulWidget {
   });
 
   @override
-  State<MatchingGame> createState() => _MatchingGameState();
+  State<KarinaMatchingView> createState() => _KarinaMatchingViewState();
 }
 
-class _MatchingGameState extends State<MatchingGame> {
+class _KarinaMatchingViewState extends State<KarinaMatchingView> {
   late List<String> spanishOptions;
   late List<String> karinaOptions;
 
@@ -139,30 +139,34 @@ class _MatchingGameState extends State<MatchingGame> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        child: InkWell(
-          onTap: isMatched ? null : () => isSpanish ? _onSpanishTap(word) : _onKarinaTap(word),
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: bgColor,
-              border: Border.all(
-                color: isSelected ? Colors.blue : (isMatched ? Colors.green : Colors.grey[300]!),
-                width: 2,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 500),
+        opacity: isMatched ? 0.0 : 1.0,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          child: InkWell(
+            onTap: isMatched ? null : () => isSpanish ? _onSpanishTap(word) : _onKarinaTap(word),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: bgColor,
+                border: Border.all(
+                  color: isSelected ? Colors.blue : (isMatched ? Colors.green : Colors.grey[300]!),
+                  width: 2,
+                ),
+                borderRadius: BorderRadius.circular(12),
               ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Text(
-                word,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isMatched ? Colors.green[700] : Colors.brown[700],
-                  decoration: isMatched ? TextDecoration.lineThrough : null,
+              child: Center(
+                child: Text(
+                  word,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isMatched ? Colors.green[700] : Colors.brown[700],
+                    decoration: isMatched ? TextDecoration.lineThrough : null,
+                  ),
                 ),
               ),
             ),

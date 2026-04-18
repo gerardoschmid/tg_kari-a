@@ -1,5 +1,3 @@
-import 'package:karina_app/utils/db_helper.dart';
-
 class Flashcard {
   int? id;
   int deckId;
@@ -37,27 +35,13 @@ class Flashcard {
   static Flashcard fromMap(Map<String, dynamic> flashcardMap) {
     return Flashcard(
       id: flashcardMap['id'] as int?,
-      deckId: flashcardMap['deckId'] as int,
-      category: flashcardMap['category'] as String,
-      spanish: flashcardMap['spanish'] as String,
-      karina: flashcardMap['karina'] as String,
+      deckId: (flashcardMap['deckId'] as num?)?.toInt() ?? 0,
+      category: flashcardMap['category'] as String? ?? 'General',
+      spanish: flashcardMap['spanish'] as String? ?? '',
+      karina: flashcardMap['karina'] as String? ?? '',
       audioPath: flashcardMap['audioPath'] as String?,
       exampleSentence: flashcardMap['exampleSentence'] as String?,
-      difficultyLevel: flashcardMap['difficultyLevel'] as int?,
+      difficultyLevel: (flashcardMap['difficultyLevel'] as num?)?.toInt() ?? 1,
     );
-  }
-
-  Future<void> dbSave() async {
-    id = await DBHelper().insert('flashcard', toMap());
-  }
-
-  Future<void> dbUpdate() async {
-    await DBHelper().update('flashcard', toMap(), 'id = ?', [id]);
-  }
-
-  Future<void> dbDelete() async {
-    if (id != null) {
-      await DBHelper().delete('flashcard', 'id = ?', [id]);
-    }
   }
 }

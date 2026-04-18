@@ -3,7 +3,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DBHelper {
-  static const String _databaseName = 'karina_flashcards.db'; // Renamed to avoid conflicts with old schema
+  static const String _databaseName = 'karina_flashcards_v2.db'; // Renamed to avoid conflicts with old schema
   static const int _databaseVersion = 1;
 
   DBHelper._(); // private constructor (can't be called from outside)
@@ -18,9 +18,9 @@ class DBHelper {
   Database? _database;
 
   // initialize the database when it's first requested
-  get db async {
+  Future<Database> get db async {
     _database ??= await _initDatabase(); // if null, initialize it
-    return _database;
+    return _database!;
   }
 
   Future<Database> _initDatabase() async {

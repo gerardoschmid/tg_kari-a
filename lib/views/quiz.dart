@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:karina_app/models/flashcard.dart';
 import 'package:karina_app/utils/db_helper.dart';
 import 'package:karina_app/providers/game_provider.dart';
-import 'package:karina_app/views/matching_game.dart';
+import 'package:karina_app/views/karina_matching_view.dart';
 import 'package:karina_app/views/game_over_screen.dart';
 import 'package:karina_app/views/quiz_results.dart';
 
@@ -139,6 +139,7 @@ class _QuizPageState extends State<QuizPage> {
     _stopwatch.stop();
     final duration = _stopwatch.elapsed;
     final timeStr = "${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}";
+    final livesRemaining = context.read<GameProvider>().lives;
 
     Navigator.pushReplacement(
       context,
@@ -147,6 +148,7 @@ class _QuizPageState extends State<QuizPage> {
           score: score,
           totalQuestions: allFlashcards.length,
           timeSpent: timeStr,
+          livesRemaining: livesRemaining,
         ),
       ),
     );
@@ -222,7 +224,7 @@ class _QuizPageState extends State<QuizPage> {
                   ),
                   const SizedBox(height: 20),
                   Expanded(
-                    child: MatchingGame(
+                    child: KarinaMatchingView(
                       flashcards: currentMatchingSet,
                       onCorrect: () {},
                       onIncorrect: _onMatchingIncorrect,
