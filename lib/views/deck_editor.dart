@@ -1,25 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:karina_app/models/deck.dart';
-import 'package:karina_app/utils/db_helper.dart';
 
 class DeckEditor extends StatefulWidget {
   const DeckEditor({
     super.key,
     required this.deckIndex,
     required this.deckTitle,
-    required this.decks,
     required this.isBeingCreated,
   });
 
   final int deckIndex;
   final String deckTitle;
-  final List<Deck> decks;
   final bool isBeingCreated;
 
   @override
   State<DeckEditor> createState() => _DeckEditorState();
 }
-
 
 class _DeckEditorState extends State<DeckEditor> {
   final TextEditingController _deckNameController = TextEditingController();
@@ -32,58 +27,15 @@ class _DeckEditorState extends State<DeckEditor> {
     }
   }
 
-  Future<void> createOrUpdateDeck() async {
-    final String newDeckTitle = _deckNameController.text;
-
-    // Create a new deck and insert it into the database
-    if (widget.isBeingCreated) {
-      final newDeck = Deck(title: newDeckTitle, flashcards: []);
-      await DBHelper().insert('deck', {'title': newDeckTitle});
-      widget.decks.add(newDeck);
-    } else {
-      // Update the deck in the database
-      for (final deck in widget.decks) {
-        if (deck.title == widget.deckTitle) {
-          await DBHelper().update(
-            'deck',
-            {'title': newDeckTitle},
-            'id = ?',
-            [deck.id],
-          );
-          deck.title = newDeckTitle;
-          break;
-        }
-      }
-    }
+  void createOrUpdateDeck() {
     if (mounted) {
-      Navigator.pop(context, widget.decks);
+      Navigator.pop(context, true);
     }
   }
 
-  // Future<void> deleteDeck() async {
-  //   widget.decks.removeWhere((deck) {
-  //     if (deck.id == widget.deckIndex) {
-  //       for (final flashcard in deck.flashcards) {
-  //         deleteFromDB(flashcard.id);
-  //       }
-  //       return true;
-  //     }
-  //     return false;
-  //   });
-  //   await DBHelper().delete('deck', 'id = ?', [widget.deckIndex]);
-  //   if (mounted) {
-  //     Navigator.pop(context, widget.decks);
-  //   }
-  // }
-
-  // Future<void> deleteFromDB(flashcardId) async {
-  //   await DBHelper().delete('flashcard', 'id = ?', [flashcardId]);
-  // }
-
-  Future<void> deleteDeck() async {
-    await DBHelper().deleteDeckAndRelatedFlashcards(widget.deckIndex);
+  void deleteDeck() {
     if (mounted) {
-      Navigator.pop(context, widget.decks);
+      Navigator.pop(context, true);
     }
   }
 
@@ -93,61 +45,69 @@ class _DeckEditorState extends State<DeckEditor> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.green[400],
-        title: Center(
-          child: Text(
-            isEditing ? 'Edit Deck' : 'Create Deck',
-            style: const TextStyle(color: Colors.white),
-          ),
+        backgroundColor: Colors.green[700],
+        title: Text(
+          isEditing ? 'Editar Mazo' : 'Nuevo Mazo',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context, widget.decks);
-          },
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
+      backgroundColor: Colors.green[50],
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               TextField(
                 controller: _deckNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Deck Name',
-                  labelStyle: TextStyle(fontWeight: FontWeight.bold),
+                decoration: InputDecoration(
+                  labelText: 'Nombre del Mazo',
+                  labelStyle: const TextStyle(color: Colors.brown, fontWeight: FontWeight.bold),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: const BorderSide(color: Colors.green, width: 2),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 32),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  TextButton(
-                    style: ButtonStyle(
-                        foregroundColor: MaterialStateProperty.all(Colors.white),
-                        backgroundColor: MaterialStateProperty.all(Colors.blue[300]),
-                      ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[700],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    ),
                     onPressed: createOrUpdateDeck,
-                    child: const Text('Save'),
+                    child: const Text('Guardar'),
                   ),
-                  const SizedBox(width: 16),
-                  if (!widget.isBeingCreated)
-                    TextButton(
-                      style: ButtonStyle(
-                        foregroundColor: MaterialStateProperty.all(Colors.white),
-                        backgroundColor: MaterialStateProperty.all(Colors.red[300]),
+                  if (isEditing) ...[
+                    const SizedBox(width: 16),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red[400],
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       ),
                       onPressed: deleteDeck,
-                      child: const Text('Delete'),
+                      child: const Text('Eliminar'),
                     ),
+                  ],
                 ],
               ),
             ],
           ),
-        )
+        ),
       ),
     );
   }

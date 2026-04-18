@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:karina_app/models/deck.dart';
-import 'package:karina_app/models/flashcard.dart';
-import 'package:karina_app/utils/db_helper.dart';
-import 'package:karina_app/views/flashcard_editor.dart';
+import 'package:provider/provider.dart';
+import 'package:karina_app/providers/deck_provider.dart';
+import 'package:karina_app/views/karina_card.dart';
 import 'package:karina_app/views/quiz.dart';
 
-// ignore: must_be_immutable
 class FlashcardList extends StatefulWidget {
   final int deckId;
   final String deckTitle;
-  List<Deck> decks = [];
 
-  FlashcardList({
+  const FlashcardList({
     super.key,
     required this.deckId,
     required this.deckTitle,
-    required this.decks,
   });
 
   @override
@@ -23,196 +19,72 @@ class FlashcardList extends StatefulWidget {
 }
 
 class _FlashcardListState extends State<FlashcardList> {
-  late Future<List<Flashcard>> _flashcards;
-  List<Flashcard> baseFlashcards = [];
-  List<Flashcard> flashcards = [];
-  bool isSorted = false;
-  bool isEmpty = false;
-
-  Future<List<Flashcard>> loadFlashcards() async {
-    final flashcard = await DBHelper().query(
-      'flashcard',
-      where: 'deckId = ${widget.deckId}',
-    );
-    return flashcard
-        .map((e) => Flashcard(
-              id: e['id'] as int,
-              deckId: e['deckId'] as int,
-              question: e['question'] as String,
-              answer: e['answer'] as String,
-            ))
-        .toList();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _flashcards = loadFlashcards();
-    _flashcards.then((value) => {
-      if (value.isEmpty) {
-        isEmpty = true,
-        loadLocalFlashcards()
-      },
-    });
-  }
-
-  void loadLocalFlashcards() {
-    for (final deck in widget.decks) {
-      if (deck.id == widget.deckId) {
-        flashcards = deck.flashcards;
-        break;
-      }
-    }
-    setState(() {
-      flashcards = flashcards;
-    });
-  }
-
-  void toggleSortCards() {
-    setState(() {
-      if (!isSorted) {
-        baseFlashcards = List.from(flashcards);
-        flashcards.sort((a, b) => a.question.compareTo(b.question));
-        isSorted = true;
-      } else {
-        flashcards = List.from(baseFlashcards);
-        isSorted = false;
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: _flashcards,
-      initialData: const [],
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        } else {
-          flashcards =
-              snapshot.hasData ? snapshot.data as List<Flashcard> : flashcards;
-          return Scaffold(
-            appBar: AppBar(
-              backgroundColor: Colors.green[400],
-              title: Center(
-                child: Text(
-                  widget.deckTitle,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                    color: Colors.white),
-                onPressed: () {
-                  Navigator.pop(context, true);
-                },
-              ),
-              actions: <Widget>[
-                IconButton(
-                  icon: const Icon(Icons.sort, color: Colors.white),
-                  onPressed: isEmpty ? null : toggleSortCards,
-                  disabledColor: Colors.grey,
-                ),
-                IconButton(
-                  icon:
-                      const Icon(Icons.play_arrow_rounded, color: Colors.white),
-                  disabledColor: Colors.grey,
-                  onPressed: isEmpty
-                      ? null
-                      : () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => QuizPage(
-                                deckTitle: widget.deckTitle,
-                                deckId: widget.deckId,
-                                decks: widget.decks,
-                              ),
-                            ),
-                          );
-                        },
-                ),
-              ],
-            ),
-            body: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 250,
-                childAspectRatio: 1,
-              ),
-              itemCount: flashcards.length,
-              itemBuilder: (context, index) {
-                return Card(
-                  color: Colors.blue[100],
-                  child: InkWell(
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => FlashcardEditor(
-                              initialQue: flashcards[index].question,
-                              initialAns: flashcards[index].answer,
-                              deckId: widget.deckId,
-                              flashcardId: flashcards[index].id ?? 0,
-                              decks: widget.decks,
-                              canBeDeleted: true),
-                        ),
-                      ).then((value) => {
-                          if (value == true)
-                            {
-                              setState(() {
-                                _flashcards =
-                                    loadFlashcards();
-                              })
-                            }
-                        });
-                    },
-                    child: Center(
-                      child: Text(
-                        flashcards[index].question,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 20),
-                      ),
-                    ),
-                  ),
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.green[700],
+        title: Text(
+          widget.deckTitle,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.play_arrow_rounded, size: 30),
+            onPressed: () async {
+              final deckProvider = Provider.of<DeckProvider>(context, listen: false);
+              final deck = deckProvider.decks.firstWhere((d) => d.id == widget.deckId);
+              if (deck.flashcards.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('No hay tarjetas para practicar.')),
                 );
-              },
-            ),
-            floatingActionButton: FloatingActionButton(
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => FlashcardEditor(
-                        initialQue: '',
-                        initialAns: '',
-                        deckId: widget.deckId,
-                        flashcardId: 0,
-                        decks: widget.decks,
-                        canBeDeleted: false),
+                return;
+              }
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => QuizPage(
+                    deckTitle: widget.deckTitle,
+                    deckId: widget.deckId,
                   ),
-                ).then((value) => {
-                    if (value == true)
-                      {
-                        setState(() {
-                          _flashcards =
-                            loadFlashcards();
-                            if (isEmpty) {
-                              isEmpty = false;
-                            }
-                        })
-                      }
-                  });
-              },
-              child: const Icon(Icons.add),
-            ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      backgroundColor: Colors.green[50],
+      body: Consumer<DeckProvider>(
+        builder: (context, deckProvider, child) {
+          final deck = deckProvider.decks.firstWhere(
+            (d) => d.id == widget.deckId,
+            orElse: () => throw Exception('Deck not found'),
           );
-        }
-      },
+          final flashcards = deck.flashcards;
+
+          if (flashcards.isEmpty) {
+            return const Center(child: Text('Agrega algunas tarjetas para comenzar.'));
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: flashcards.length,
+            itemBuilder: (context, index) {
+              final flashcard = flashcards[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: KarinaCard(
+                  flashcard: flashcard,
+                  onTap: () {
+                    // Just show the card or do nothing
+                  },
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
