@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 
 class DBHelper {
   static const String _databaseName = 'karina_flashcards_v2.db'; // Renamed to avoid conflicts with old schema
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 2;
 
   DBHelper._(); // private constructor (can't be called from outside)
 
@@ -30,6 +30,11 @@ class DBHelper {
     var db = await openDatabase(
       dbPath,
       version: _databaseVersion,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE flashcard ADD COLUMN imagePath TEXT');
+        }
+      },
       onCreate: (Database db, int version) async {
         // create the deck table
         await db.execute('''
@@ -47,6 +52,7 @@ class DBHelper {
             spanish TEXT NOT NULL,
             karina TEXT NOT NULL,
             audioPath TEXT,
+            imagePath TEXT,
             exampleSentence TEXT,
             difficultyLevel INTEGER,
             FOREIGN KEY (deckId) REFERENCES deck (id) ON DELETE CASCADE

@@ -60,6 +60,8 @@ class DeckProvider with ChangeNotifier {
           category: fcData['category'] ?? 'General',
           spanish: fcData['spanish'],
           karina: fcData['karina'],
+          audioPath: fcData['audioPath'],
+          imagePath: fcData['imagePath'],
           exampleSentence: fcData['exampleSentence'],
           difficultyLevel: fcData['difficultyLevel'] ?? 1,
         );
