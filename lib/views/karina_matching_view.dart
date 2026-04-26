@@ -106,17 +106,27 @@ class _KarinaMatchingViewState extends State<KarinaMatchingView> {
 
   @override
   Widget build(BuildContext context) {
+    if (spanishOptions.isEmpty || karinaOptions.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
     return Row(
       children: [
         Expanded(
-          child: Column(
-            children: spanishOptions.map((word) => _buildItem(word, true)).toList(),
+          child: SingleChildScrollView(
+            child: Column(
+              children: spanishOptions.map((word) => _buildItem(word, true)).toList(),
+            ),
           ),
         ),
         const SizedBox(width: 20),
         Expanded(
-          child: Column(
-            children: karinaOptions.map((word) => _buildItem(word, false)).toList(),
+          child: SingleChildScrollView(
+            child: Column(
+              children: karinaOptions.map((word) => _buildItem(word, false)).toList(),
+            ),
           ),
         ),
       ],

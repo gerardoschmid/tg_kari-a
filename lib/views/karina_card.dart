@@ -26,78 +26,98 @@ class KarinaCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getDifficultyColor(flashcard.difficultyLevel),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      flashcard.category,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (flashcard.imagePath != null && flashcard.imagePath!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: Image.asset(
+                        flashcard.imagePath!,
+                        height: MediaQuery.of(context).size.height * 0.2,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: MediaQuery.of(context).size.height * 0.2,
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.image_not_supported, size: 50),
+                        ),
                       ),
                     ),
                   ),
-                  if (flashcard.audioPath != null && flashcard.audioPath!.isNotEmpty)
-                    IconButton(
-                      icon: const Icon(Icons.volume_up, color: Colors.green),
-                      onPressed: () {
-                        if (onPlayAudio != null) {
-                          onPlayAudio!();
-                        } else {
-                          _showAudioPlaceholder(context);
-                        }
-                      },
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getDifficultyColor(flashcard.difficultyLevel),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        flashcard.category,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                flashcard.karina,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.brown,
+                    if (flashcard.audioPath != null && flashcard.audioPath!.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.volume_up, color: Colors.green),
+                        onPressed: () {
+                          if (onPlayAudio != null) {
+                            onPlayAudio!();
+                          } else {
+                            _showAudioPlaceholder(context);
+                          }
+                        },
+                      ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                flashcard.spanish,
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.grey[700],
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-              if (flashcard.exampleSentence != null && flashcard.exampleSentence!.isNotEmpty) ...[
-                const Divider(height: 24),
-                const Text(
-                  'Ejemplo:',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                ),
+                const SizedBox(height: 12),
                 Text(
-                  flashcard.exampleSentence!,
+                  flashcard.karina,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                     color: Colors.brown,
                   ),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  flashcard.spanish,
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey[700],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                if (flashcard.exampleSentence != null && flashcard.exampleSentence!.isNotEmpty) ...[
+                  const Divider(height: 24),
+                  const Text(
+                    'Ejemplo:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                  Text(
+                    flashcard.exampleSentence!,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.brown,
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
