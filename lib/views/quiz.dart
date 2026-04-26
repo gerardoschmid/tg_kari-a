@@ -28,96 +28,126 @@ class QuizPage extends StatefulWidget {
 
 class _QuizPageState extends State<QuizPage> {
   late Future<List<Flashcard>> _flashcardsFuture;
-  List<Flashcard> allFlashcards = [];
-  int currentLevelIndex = 0;
-  int score = 0;
+  List<Flashcard> _allFlashcards = [];
+  int _currentLevelIndex = 0;
 
   // Quiz state
-  List<String> currentOptions = [];
-  bool hasAnswered = false;
-  String? selectedOption;
+  List<String> _currentOptions = [];
+  bool _hasAnswered = false;
+  String? _selectedOption;
 
   // Game flow state
-  GameType? currentGameType;
+  GameType? _currentGameType;
   late Stopwatch _stopwatch;
 
-  // For matching game, we might want to group flashcards
-  List<Flashcard> currentMatchingSet = [];
+  // For matching game
+  List<Flashcard> _currentMatchingSet = [];
 
   @override
   void initState() {
     super.initState();
+    debugPrint('Iniciando QuizPage para el mazo: ${widget.deckTitle}');
     _stopwatch = Stopwatch()..start();
+
+    // Reset game state at the start of a new lesson
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<GameProvider>().resetGame();
+    });
+
     _flashcardsFuture = _loadFlashcards();
-    context.read<GameProvider>().resetLives();
   }
 
   Future<List<Flashcard>> _loadFlashcards() async {
-    final List<Map<String, dynamic>> maps = await DBHelper().query(
-      'flashcard',
-      where: 'deckId = ?',
-      whereArgs: [widget.deckId],
-    );
-    allFlashcards = maps.map((e) => Flashcard.fromMap(e)).toList();
-    allFlashcards.shuffle();
-    _nextLevel();
-    return allFlashcards;
+    try {
+      debugPrint('Cargando lección desde DB...');
+      final List<Map<String, dynamic>> maps = await DBHelper().query(
+        'flashcard',
+        where: 'deckId = ?',
+        whereArgs: [widget.deckId],
+      );
+
+      final flashcards = maps.map((e) => Flashcard.fromMap(e)).toList();
+
+      if (flashcards.isEmpty) {
+        debugPrint('Error: Mazo vacío');
+        throw Exception('No se encontraron palabras en este mazo.');
+      }
+
+      debugPrint('Datos recibidos: OK (${flashcards.length} palabras)');
+      _allFlashcards = List.from(flashcards)..shuffle();
+
+      // Initialize the first level
+      _nextLevel();
+
+      return _allFlashcards;
+    } catch (e) {
+      debugPrint('Error cargando lección: $e');
+      rethrow;
+    }
   }
 
   void _nextLevel() {
-    if (currentLevelIndex >= allFlashcards.length && currentGameType == GameType.multipleChoice) {
+    if (_currentLevelIndex >= _allFlashcards.length) {
        _finishQuiz();
        return;
     }
 
     setState(() {
-      hasAnswered = false;
-      selectedOption = null;
+      _hasAnswered = false;
+      _selectedOption = null;
 
-      // Randomly choose game type
-      // If we have at least 3 cards remaining, we can do matching
-      if (allFlashcards.length - currentLevelIndex >= 3 && Random().nextBool()) {
-        currentGameType = GameType.matching;
-        int setSize = min(4, allFlashcards.length - currentLevelIndex);
-        currentMatchingSet = allFlashcards.sublist(currentLevelIndex, currentLevelIndex + setSize);
+      // Rule: Matching only if at least 4 words remaining
+      int remaining = _allFlashcards.length - _currentLevelIndex;
+      if (remaining >= 4 && Random().nextBool()) {
+        debugPrint('Iniciando juego de emparejar...');
+        _currentGameType = GameType.matching;
+        int setSize = min(4, remaining);
+        _currentMatchingSet = _allFlashcards.sublist(_currentLevelIndex, _currentLevelIndex + setSize);
       } else {
-        currentGameType = GameType.multipleChoice;
+        debugPrint('Iniciando selección múltiple...');
+        _currentGameType = GameType.multipleChoice;
         _generateOptions();
       }
     });
   }
 
   void _generateOptions() {
-    if (allFlashcards.isEmpty || currentLevelIndex >= allFlashcards.length) return;
+    if (_allFlashcards.isEmpty || _currentLevelIndex >= _allFlashcards.length) return;
 
-    final currentFlashcard = allFlashcards[currentLevelIndex];
-    List<String> options = [currentFlashcard.karina];
+    final currentFlashcard = _allFlashcards[_currentLevelIndex];
+    Set<String> optionsSet = {currentFlashcard.karina};
 
-    List<String> otherWords = allFlashcards
+    // Get other words from the same deck safely
+    List<String> otherWords = _allFlashcards
         .where((f) => f.karina != currentFlashcard.karina)
         .map((f) => f.karina)
         .toList();
 
     otherWords.shuffle();
-    options.addAll(otherWords.take(2));
 
-    while (options.length < 3) {
-      options.add("Palabra ${options.length + 1}");
+    // Add up to 2 other words to make it 3 options
+    for (var word in otherWords.take(2)) {
+      optionsSet.add(word);
     }
 
-    options.shuffle();
-    currentOptions = options;
+    // Fill with placeholders if still not enough (unlikely but safe)
+    int placeholderCount = 1;
+    while (optionsSet.length < 3) {
+      optionsSet.add("Opción ${placeholderCount++}");
+    }
+
+    _currentOptions = optionsSet.toList()..shuffle();
   }
 
   void _checkAnswer(String option) {
-    if (hasAnswered) return;
+    if (_hasAnswered) return;
 
     final gameProvider = context.read<GameProvider>();
     setState(() {
-      hasAnswered = true;
-      selectedOption = option;
-      if (option == allFlashcards[currentLevelIndex].karina) {
-        score++;
+      _hasAnswered = true;
+      _selectedOption = option;
+      if (option == _allFlashcards[_currentLevelIndex].karina) {
+        gameProvider.addScore(1);
       } else {
         HapticFeedback.vibrate();
         gameProvider.subtractLife();
@@ -129,6 +159,7 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   void _handleGameOver() {
+    debugPrint('Juego terminado: Vidas agotadas');
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const GameOverScreen()),
@@ -136,32 +167,35 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   void _finishQuiz() {
+    debugPrint('Finalizando lección...');
     _stopwatch.stop();
     final duration = _stopwatch.elapsed;
     final timeStr = "${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}";
-    final livesRemaining = context.read<GameProvider>().lives;
+    final gameProvider = context.read<GameProvider>();
 
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => QuizResults(
-          score: score,
-          totalQuestions: allFlashcards.length,
+          score: gameProvider.score,
+          totalQuestions: _allFlashcards.length,
           timeSpent: timeStr,
-          livesRemaining: livesRemaining,
+          livesRemaining: gameProvider.lives,
         ),
       ),
     );
   }
 
   void _onMatchingComplete() {
+    final gameProvider = context.read<GameProvider>();
+    int setSize = _currentMatchingSet.length;
+    gameProvider.addScore(setSize);
+
     setState(() {
-      int setSize = currentMatchingSet.length;
-      score += setSize;
-      currentLevelIndex += setSize;
+      _currentLevelIndex += setSize;
     });
 
-    if (currentLevelIndex >= allFlashcards.length) {
+    if (_currentLevelIndex >= _allFlashcards.length) {
       _finishQuiz();
     } else {
       _nextLevel();
@@ -206,14 +240,48 @@ class _QuizPageState extends State<QuizPage> {
         future: _flashcardsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Cargando lección...', style: TextStyle(color: Colors.brown)),
+                ],
+              ),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Ocurrió un problema: ${snapshot.error}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16, color: Colors.brown),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Volver'),
+                    ),
+                  ],
+                ),
+              ),
+            );
           }
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No hay tarjetas en este mazo.'));
+            return const Center(child: Text('No hay tarjetas disponibles.'));
           }
 
-          if (currentGameType == GameType.matching) {
+          if (_currentGameType == GameType.matching) {
             return Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -225,7 +293,7 @@ class _QuizPageState extends State<QuizPage> {
                   const SizedBox(height: 20),
                   Expanded(
                     child: KarinaMatchingView(
-                      flashcards: currentMatchingSet,
+                      flashcards: _currentMatchingSet,
                       onCorrect: () {},
                       onIncorrect: _onMatchingIncorrect,
                       onAllMatched: () {
@@ -240,22 +308,22 @@ class _QuizPageState extends State<QuizPage> {
             );
           }
 
-          final currentFlashcard = allFlashcards[currentLevelIndex];
+          final currentFlashcard = _allFlashcards[_currentLevelIndex];
 
-          return Padding(
+          return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 LinearProgressIndicator(
-                  value: (currentLevelIndex + 1) / allFlashcards.length,
+                  value: (_currentLevelIndex + 1) / _allFlashcards.length,
                   backgroundColor: Colors.green[100],
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.green[700]!),
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Pregunta ${currentLevelIndex + 1} de ${allFlashcards.length}',
+                  'Pregunta ${_currentLevelIndex + 1} de ${_allFlashcards.length}',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey[600], fontSize: 16),
                 ),
@@ -270,12 +338,12 @@ class _QuizPageState extends State<QuizPage> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                ...currentOptions.map((option) {
+                ..._currentOptions.map((option) {
                   bool isCorrect = option == currentFlashcard.karina;
-                  bool isSelected = option == selectedOption;
+                  bool isSelected = option == _selectedOption;
 
                   Color? btnColor = Colors.white;
-                  if (hasAnswered) {
+                  if (_hasAnswered) {
                     if (isCorrect) {
                       btnColor = Colors.green[100];
                     } else if (isSelected) {
@@ -307,7 +375,7 @@ class _QuizPageState extends State<QuizPage> {
                   );
                 }),
                 const SizedBox(height: 40),
-                if (hasAnswered)
+                if (_hasAnswered)
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green[700],
@@ -319,12 +387,12 @@ class _QuizPageState extends State<QuizPage> {
                     ),
                     onPressed: () {
                       setState(() {
-                        currentLevelIndex++;
+                        _currentLevelIndex++;
                       });
                       _nextLevel();
                     },
                     child: Text(
-                      currentLevelIndex < allFlashcards.length - 1
+                      _currentLevelIndex < _allFlashcards.length - 1
                           ? 'Siguiente'
                           : 'Finalizar',
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

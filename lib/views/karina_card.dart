@@ -48,16 +48,17 @@ class KarinaCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.volume_up, color: Colors.green),
-                    onPressed: () {
-                      if (onPlayAudio != null) {
-                        onPlayAudio!();
-                      } else {
-                        _showAudioPlaceholder(context);
-                      }
-                    },
-                  ),
+                  if (flashcard.audioPath != null && flashcard.audioPath!.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.volume_up, color: Colors.green),
+                      onPressed: () {
+                        if (onPlayAudio != null) {
+                          onPlayAudio!();
+                        } else {
+                          _showAudioPlaceholder(context);
+                        }
+                      },
+                    ),
                 ],
               ),
               const SizedBox(height: 12),
