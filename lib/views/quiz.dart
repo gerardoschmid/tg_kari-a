@@ -9,6 +9,7 @@ import 'package:karina_app/providers/game_provider.dart';
 import 'package:karina_app/views/karina_matching_view.dart';
 import 'package:karina_app/views/game_over_screen.dart';
 import 'package:karina_app/views/quiz_results.dart';
+import 'package:lottie/lottie.dart';
 
 enum GameType { multipleChoice, matching }
 
@@ -26,7 +27,7 @@ class QuizPage extends StatefulWidget {
   State<QuizPage> createState() => _QuizPageState();
 }
 
-class _QuizPageState extends State<QuizPage> {
+class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin {
   late Future<List<Flashcard>> _flashcardsFuture;
   List<Flashcard> _allFlashcards = [];
   int _currentLevelIndex = 0;
@@ -35,10 +36,12 @@ class _QuizPageState extends State<QuizPage> {
   List<String> _currentOptions = [];
   bool _hasAnswered = false;
   String? _selectedOption;
+  bool _showSuccessAnimation = false;
 
   // Game flow state
   GameType? _currentGameType;
   late Stopwatch _stopwatch;
+  late AnimationController _shakeController;
 
   // For matching game
   List<Flashcard> _currentMatchingSet = [];
@@ -49,12 +52,23 @@ class _QuizPageState extends State<QuizPage> {
     debugPrint('Iniciando QuizPage para el mazo: ${widget.deckTitle}');
     _stopwatch = Stopwatch()..start();
 
+    _shakeController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
     // Reset game state at the start of a new lesson
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<GameProvider>().resetGame();
     });
 
     _flashcardsFuture = _loadFlashcards();
+  }
+
+  @override
+  void dispose() {
+    _shakeController.dispose();
+    super.dispose();
   }
 
   Future<List<Flashcard>> _loadFlashcards() async {
@@ -95,6 +109,7 @@ class _QuizPageState extends State<QuizPage> {
     setState(() {
       _hasAnswered = false;
       _selectedOption = null;
+      _showSuccessAnimation = false;
 
       // Rule: Matching only if at least 4 words remaining
       int remaining = _allFlashcards.length - _currentLevelIndex;
@@ -143,13 +158,17 @@ class _QuizPageState extends State<QuizPage> {
     if (_hasAnswered) return;
 
     final gameProvider = context.read<GameProvider>();
+    final isCorrect = option == _allFlashcards[_currentLevelIndex].karina;
+
     setState(() {
       _hasAnswered = true;
       _selectedOption = option;
-      if (option == _allFlashcards[_currentLevelIndex].karina) {
+      if (isCorrect) {
+        _showSuccessAnimation = true;
         gameProvider.addScore(1);
       } else {
         HapticFeedback.vibrate();
+        _shakeController.forward(from: 0);
         gameProvider.subtractLife();
         if (gameProvider.isGameOver) {
           _handleGameOver();
@@ -205,13 +224,45 @@ class _QuizPageState extends State<QuizPage> {
   void _onMatchingIncorrect() {
     final gameProvider = context.read<GameProvider>();
     gameProvider.subtractLife();
+    _shakeController.forward(from: 0);
     if (gameProvider.isGameOver) {
       _handleGameOver();
     }
   }
 
+  Color _getColorFromName(String karina) {
+    // We need to find the flashcard by its karina name to get the color
+    final flashcard = _allFlashcards.firstWhere((f) => f.karina == karina);
+    final s = flashcard.spanish.toLowerCase();
+    if (s.contains('rojo')) return Colors.red;
+    if (s.contains('amarillo') || s.contains('dorado')) return Colors.yellow;
+    if (s.contains('negro') || s.contains('negra')) return Colors.black;
+    if (s.contains('verde')) return Colors.green;
+    if (s.contains('azul')) return Colors.blue;
+    if (s.contains('blanco')) return Colors.white;
+    if (s.contains('oscuro')) return Colors.grey[800]!;
+    if (s.contains('multicolor')) return Colors.orange; // Placeholder
+    return Colors.brown;
+  }
+
+  Widget _buildShakeAnimation({required Widget child}) {
+    return AnimatedBuilder(
+      animation: _shakeController,
+      builder: (context, child) {
+        final double offset = sin(_shakeController.value * pi * 4) * 10;
+        return Transform.translate(
+          offset: Offset(offset, 0),
+          child: child,
+        );
+      },
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    bool isColorsUnit = widget.deckTitle.toLowerCase().contains('colores');
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.deckTitle),
@@ -236,172 +287,247 @@ class _QuizPageState extends State<QuizPage> {
         ],
       ),
       backgroundColor: Colors.green[50],
-      body: FutureBuilder<List<Flashcard>>(
-        future: _flashcardsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Cargando lección...', style: TextStyle(color: Colors.brown)),
-                ],
-              ),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline, size: 60, color: Colors.red),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Ocurrió un problema: ${snapshot.error}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 16, color: Colors.brown),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Volver'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No hay tarjetas disponibles.'));
-          }
-
-          if (_currentGameType == GameType.matching) {
-            return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  const Text(
-                    'Empareja las palabras',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.brown),
+      body: Stack(
+        children: [
+          FutureBuilder<List<Flashcard>>(
+            future: _flashcardsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Cargando lección...', style: TextStyle(color: Colors.brown)),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: KarinaMatchingView(
-                      flashcards: _currentMatchingSet,
-                      onCorrect: () {},
-                      onIncorrect: _onMatchingIncorrect,
-                      onAllMatched: () {
-                        Timer(const Duration(milliseconds: 800), () {
-                          if (mounted) _onMatchingComplete();
-                        });
-                      },
+                );
+              }
+
+              if (snapshot.hasError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Ocurrió un problema: ${snapshot.error}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 16, color: Colors.brown),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Volver'),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            );
-          }
+                );
+              }
 
-          final currentFlashcard = _allFlashcards[_currentLevelIndex];
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text('No hay tarjetas disponibles.'));
+              }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                LinearProgressIndicator(
-                  value: (_currentLevelIndex + 1) / _allFlashcards.length,
-                  backgroundColor: Colors.green[100],
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.green[700]!),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Pregunta ${_currentLevelIndex + 1} de ${_allFlashcards.length}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  '¿Cómo se dice "${currentFlashcard.spanish}" en Kariña?',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.brown,
-                  ),
-                ),
-                const SizedBox(height: 40),
-                ..._currentOptions.map((option) {
-                  bool isCorrect = option == currentFlashcard.karina;
-                  bool isSelected = option == _selectedOption;
-
-                  Color? btnColor = Colors.white;
-                  if (_hasAnswered) {
-                    if (isCorrect) {
-                      btnColor = Colors.green[100];
-                    } else if (isSelected) {
-                      btnColor = Colors.red[100];
-                    }
-                  }
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: btnColor,
-                        foregroundColor: Colors.brown,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                          side: BorderSide(
-                            color: isSelected ? Colors.brown : Colors.grey[300]!,
-                            width: 2,
+              if (_currentGameType == GameType.matching) {
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Empareja las palabras',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.brown),
+                      ),
+                      const SizedBox(height: 20),
+                      Expanded(
+                        child: _buildShakeAnimation(
+                          child: KarinaMatchingView(
+                            flashcards: _currentMatchingSet,
+                            onCorrect: () {},
+                            onIncorrect: _onMatchingIncorrect,
+                            onAllMatched: () {
+                              Timer(const Duration(milliseconds: 800), () {
+                                if (mounted) _onMatchingComplete();
+                              });
+                            },
                           ),
                         ),
                       ),
-                      onPressed: () => _checkAnswer(option),
-                      child: Text(
-                        option,
-                        style: const TextStyle(fontSize: 18),
-                      ),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 40),
-                if (_hasAnswered)
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[700],
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _currentLevelIndex++;
-                      });
-                      _nextLevel();
-                    },
-                    child: Text(
-                      _currentLevelIndex < _allFlashcards.length - 1
-                          ? 'Siguiente'
-                          : 'Finalizar',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
+                    ],
                   ),
-              ],
+                );
+              }
+
+              final currentFlashcard = _allFlashcards[_currentLevelIndex];
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    LinearProgressIndicator(
+                      value: (_currentLevelIndex + 1) / _allFlashcards.length,
+                      backgroundColor: Colors.green[100],
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.green[700]!),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Pregunta ${_currentLevelIndex + 1} de ${_allFlashcards.length}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      '¿Cómo se dice "${currentFlashcard.spanish}" en Kariña?',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.brown,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    _buildShakeAnimation(
+                      child: Column(
+                        children: [
+                          if (isColorsUnit)
+                             Wrap(
+                              spacing: 20,
+                              runSpacing: 20,
+                              alignment: WrapAlignment.center,
+                              children: _currentOptions.map((option) {
+                                bool isCorrect = option == currentFlashcard.karina;
+                                bool isSelected = option == _selectedOption;
+                                Color mainColor = _getColorFromName(option);
+
+                                return GestureDetector(
+                                  onTap: () => _checkAnswer(option),
+                                  child: Container(
+                                    width: 100,
+                                    height: 100,
+                                    decoration: BoxDecoration(
+                                      color: mainColor,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? (isCorrect ? Colors.green : Colors.red)
+                                            : Colors.grey[300]!,
+                                        width: 4,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: _hasAnswered && isCorrect
+                                        ? const Icon(Icons.check, color: Colors.white, size: 50)
+                                        : (_hasAnswered && isSelected && !isCorrect
+                                            ? const Icon(Icons.close, color: Colors.white, size: 50)
+                                            : Center(
+                                                child: Text(
+                                                  option,
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    color: mainColor.computeLuminance() > 0.5 ? Colors.black : Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              )),
+                                  ),
+                                );
+                              }).toList(),
+                            )
+                          else
+                            ..._currentOptions.map((option) {
+                              bool isCorrect = option == currentFlashcard.karina;
+                              bool isSelected = option == _selectedOption;
+
+                              Color? btnColor = Colors.white;
+                              if (_hasAnswered) {
+                                if (isCorrect) {
+                                  btnColor = Colors.green[100];
+                                } else if (isSelected) {
+                                  btnColor = Colors.red[100];
+                                }
+                              }
+
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: btnColor,
+                                    foregroundColor: Colors.brown,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                      side: BorderSide(
+                                        color: isSelected ? Colors.brown : Colors.grey[300]!,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  onPressed: () => _checkAnswer(option),
+                                  child: Text(
+                                    option,
+                                    style: const TextStyle(fontSize: 18),
+                                  ),
+                                ),
+                              );
+                            }),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    if (_hasAnswered)
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _currentLevelIndex++;
+                          });
+                          _nextLevel();
+                        },
+                        child: Text(
+                          _currentLevelIndex < _allFlashcards.length - 1
+                              ? 'Siguiente'
+                              : 'Finalizar',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+          if (_showSuccessAnimation)
+            IgnorePointer(
+              child: Center(
+                child: Lottie.asset(
+                  'assets/animations/success.json',
+                  width: 300,
+                  height: 300,
+                  repeat: false,
+                ),
+              ),
             ),
-          );
-        },
+        ],
       ),
     );
   }

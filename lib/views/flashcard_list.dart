@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:karina_app/providers/deck_provider.dart';
 import 'package:karina_app/views/karina_card.dart';
+import 'package:karina_app/views/color_card.dart';
 import 'package:karina_app/views/quiz.dart';
 
 class FlashcardList extends StatefulWidget {
@@ -67,19 +68,26 @@ class _FlashcardListState extends State<FlashcardList> {
             return const Center(child: Text('Agrega algunas tarjetas para comenzar.'));
           }
 
-          return ListView.builder(
+          return GridView.builder(
             padding: const EdgeInsets.all(16),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: widget.deckTitle.toLowerCase().contains('colores') ? 1 : 1,
+              childAspectRatio: widget.deckTitle.toLowerCase().contains('colores') ? 0.8 : 2.5,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+            ),
             itemCount: flashcards.length,
             itemBuilder: (context, index) {
               final flashcard = flashcards[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
-                child: KarinaCard(
+              if (flashcard.category == 'Colores' || widget.deckTitle.toLowerCase().contains('colores')) {
+                return ColorCard(
                   flashcard: flashcard,
-                  onTap: () {
-                    // Just show the card or do nothing
-                  },
-                ),
+                  onTap: () {},
+                );
+              }
+              return KarinaCard(
+                flashcard: flashcard,
+                onTap: () {},
               );
             },
           );
