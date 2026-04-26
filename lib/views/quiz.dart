@@ -10,6 +10,7 @@ import 'package:karina_app/views/karina_matching_view.dart';
 import 'package:karina_app/views/game_over_screen.dart';
 import 'package:karina_app/views/quiz_results.dart';
 import 'package:lottie/lottie.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 enum GameType { multipleChoice, matching }
 
@@ -42,6 +43,7 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
   GameType? _currentGameType;
   late Stopwatch _stopwatch;
   late AnimationController _shakeController;
+  late AudioPlayer _audioPlayer;
 
   // For matching game
   List<Flashcard> _currentMatchingSet = [];
@@ -57,6 +59,8 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
       vsync: this,
     );
 
+    _audioPlayer = AudioPlayer();
+
     // Reset game state at the start of a new lesson
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<GameProvider>().resetGame();
@@ -68,6 +72,7 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
   @override
   void dispose() {
     _shakeController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -113,6 +118,8 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
 
       // Rule: Matching only if at least 4 words remaining
       int remaining = _allFlashcards.length - _currentLevelIndex;
+      debugPrint('Validación de palabras para Emparejar: $remaining palabras encontradas');
+
       if (remaining >= 4 && Random().nextBool()) {
         debugPrint('Iniciando juego de emparejar...');
         _currentGameType = GameType.matching;
@@ -166,15 +173,28 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
       if (isCorrect) {
         _showSuccessAnimation = true;
         gameProvider.addScore(1);
+        _playSound('sounds/ganar.m4a');
+        debugPrint('Reproduciendo sonido: Ganar');
       } else {
         HapticFeedback.vibrate();
         _shakeController.forward(from: 0);
         gameProvider.subtractLife();
+        _playSound('sounds/perder.m4a');
+        debugPrint('Reproduciendo sonido: Perder');
         if (gameProvider.isGameOver) {
           _handleGameOver();
         }
       }
     });
+  }
+
+  Future<void> _playSound(String path) async {
+    try {
+      await _audioPlayer.stop();
+      await _audioPlayer.play(AssetSource(path));
+    } catch (e) {
+      debugPrint('Error al reproducir sonido: $e');
+    }
   }
 
   void _handleGameOver() {
@@ -209,6 +229,8 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
     final gameProvider = context.read<GameProvider>();
     int setSize = _currentMatchingSet.length;
     gameProvider.addScore(setSize);
+    _playSound('sounds/ganar.m4a');
+    debugPrint('Reproduciendo sonido: Ganar');
 
     setState(() {
       _currentLevelIndex += setSize;
@@ -224,6 +246,8 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
   void _onMatchingIncorrect() {
     final gameProvider = context.read<GameProvider>();
     gameProvider.subtractLife();
+    _playSound('sounds/perder.m4a');
+    debugPrint('Reproduciendo sonido: Perder');
     _shakeController.forward(from: 0);
     if (gameProvider.isGameOver) {
       _handleGameOver();
@@ -524,6 +548,15 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
                   width: 300,
                   height: 300,
                   repeat: false,
+                  renderCache: RenderCache.drawingCommands,
+                  frameRate: FrameRate(30),
+                  errorBuilder: (context, error, stackTrace) {
+                    debugPrint('Estado de la animación: Error');
+                    return const Icon(Icons.check_circle, size: 100, color: Colors.green);
+                  },
+                  onLoaded: (composition) {
+                    debugPrint('Estado de la animación: Cargada');
+                  },
                 ),
               ),
             ),
