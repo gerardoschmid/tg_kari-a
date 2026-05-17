@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tactile-button {
+            transition: transform 0.1s active, border-bottom-width 0.1s active;
+        }
+        .tactile-button:active {
+            transform: translateY(4px);
+            border-bottom-width: 0px;
+        }
+        .smooth-scroll {
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        .card-glow:hover {
+            box-shadow: 0px 8px 20px rgba(46, 125, 50, 0.12);
+        }
+        @keyframes fillProgress {
+            from { width: 0%; }
+            to { width: 65%; }
+        }
+        .progress-bar-fill {
+            animation: fillProgress 1.5s ease-out forwards;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-container": "#cbffc2",
+                    "on-primary": "#ffffff",
+                    "tertiary-container": "#cf2f34",
+                    "on-secondary-container": "#6e5c00",
+                    "on-error": "#ffffff",
+                    "surface-tint": "#1b6d24",
+                    "outline-variant": "#bfcaba",
+                    "inverse-surface": "#2d322b",
+                    "secondary-container": "#fcd400",
+                    "on-surface": "#181d17",
+                    "primary-fixed-dim": "#88d982",
+                    "surface-container-low": "#f1f5eb",
+                    "on-tertiary-fixed": "#410004",
+                    "error": "#ba1a1a",
+                    "secondary-fixed-dim": "#e9c400",
+                    "on-surface-variant": "#40493d",
+                    "tertiary": "#ac101f",
+                    "error-container": "#ffdad6",
+                    "outline": "#707a6c",
+                    "on-secondary": "#ffffff",
+                    "on-tertiary-fixed-variant": "#930015",
+                    "on-error-container": "#93000a",
+                    "on-primary-fixed-variant": "#005312",
+                    "surface-container-high": "#e5eadf",
+                    "on-secondary-fixed-variant": "#544600",
+                    "surface-container": "#ebefe5",
+                    "secondary": "#705d00",
+                    "primary-fixed": "#a3f69c",
+                    "on-primary-fixed": "#002204",
+                    "surface-dim": "#d7dbd2",
+                    "inverse-on-surface": "#eef2e8",
+                    "on-tertiary-container": "#ffeeec",
+                    "on-background": "#181d17",
+                    "tertiary-fixed": "#ffdad7",
+                    "inverse-primary": "#88d982",
+                    "primary": "#0d631b",
+                    "surface-bright": "#f7fbf0",
+                    "primary-container": "#2e7d32",
+                    "surface": "#f7fbf0",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-fixed-dim": "#ffb3ae",
+                    "background": "#f7fbf0",
+                    "secondary-fixed": "#ffe16d",
+                    "on-secondary-fixed": "#221b00",
+                    "surface-container-highest": "#e0e4da",
+                    "surface-variant": "#e0e4da"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "unit": "8px",
+                    "button-depth": "4px",
+                    "section-margin": "32px",
+                    "card-gap": "16px",
+                    "container-padding": "24px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "label-caps": ["Plus Jakarta Sans"],
+                    "body-lg": ["Plus Jakarta Sans"],
+                    "headline-lg": ["Plus Jakarta Sans"],
+                    "spanish-translation": ["Plus Jakarta Sans"],
+                    "karina-text": ["Plus Jakarta Sans"]
+            },
+            "fontSize": {
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "26px", "fontWeight": "500"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "spanish-translation": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "karina-text": ["20px", {"lineHeight": "28px", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-lg overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline shadow-sm flex justify-between items-center px-container-padding h-[64px]">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary cursor-pointer" data-icon="menu">menu</span>
+<h1 class="font-headline-md text-headline-md text-primary font-bold">Kariña Learning</h1>
+</div>
+<div class="flex items-center gap-2 bg-secondary-container px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-on-secondary-container text-[18px]" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-caps text-on-secondary-container">125 5</span>
+</div>
+</header>
+<main class="pt-[64px] pb-[100px] min-h-screen px-container-padding max-w-2xl mx-auto">
+<!-- Gamified Progress Bar Section -->
+<div class="sticky top-[64px] bg-background pt-6 pb-4 z-40">
+<div class="flex justify-between items-end mb-2">
+<span class="font-label-caps text-primary uppercase tracking-wider">Progreso de Vocabulario</span>
+<span class="font-label-caps text-on-surface-variant">14 / 20 palabras</span>
+</div>
+<div class="w-full h-4 bg-primary/20 rounded-full overflow-hidden">
+<div class="progress-bar-fill h-full bg-primary rounded-full relative shadow-[0_0_8px_rgba(13,99,27,0.3)]">
+<div class="absolute top-0 right-0 h-full w-4 bg-white/20 rounded-full"></div>
+</div>
+</div>
+</div>
+<div class="mt-6 flex flex-col gap-card-gap smooth-scroll">
+<!-- Vocabulary Card 1 -->
+<div class="group bg-surface-container-lowest border border-primary/10 rounded-[20px] p-5 shadow-[0px_4px_12px_rgba(46,125,50,0.08)] card-glow transition-all duration-300 flex items-center justify-between">
+<div class="flex flex-col gap-2">
+<span class="inline-flex w-fit bg-primary-fixed text-on-primary-fixed text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">Pronombres</span>
+<div>
+<p class="font-karina-text text-karina-text text-on-surface">Aau</p>
+<p class="font-spanish-translation text-spanish-translation text-on-surface-variant mt-1">Yo</p>
+</div>
+</div>
+<button aria-label="Reproducir audio" class="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center border-b-[4px] border-primary-container tactile-button">
+<span class="material-symbols-outlined text-[28px]" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+<!-- Vocabulary Card 2 -->
+<div class="group bg-surface-container-lowest border border-primary/10 rounded-[20px] p-5 shadow-[0px_4px_12px_rgba(46,125,50,0.08)] card-glow transition-all duration-300 flex items-center justify-between">
+<div class="flex flex-col gap-2">
+<span class="inline-flex w-fit bg-primary-fixed text-on-primary-fixed text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">Pronombres</span>
+<div>
+<p class="font-karina-text text-karina-text text-on-surface">Amooro</p>
+<p class="font-spanish-translation text-spanish-translation text-on-surface-variant mt-1">Tú</p>
+</div>
+</div>
+<button aria-label="Reproducir audio" class="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center border-b-[4px] border-primary-container tactile-button">
+<span class="material-symbols-outlined text-[28px]" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+<!-- Vocabulary Card 3 -->
+<div class="group bg-surface-container-lowest border border-primary/10 rounded-[20px] p-5 shadow-[0px_4px_12px_rgba(46,125,50,0.08)] card-glow transition-all duration-300 flex items-center justify-between">
+<div class="flex flex-col gap-2">
+<span class="inline-flex w-fit bg-primary-fixed text-on-primary-fixed text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">Pronombres</span>
+<div>
+<p class="font-karina-text text-karina-text text-on-surface">Mojko</p>
+<p class="font-spanish-translation text-spanish-translation text-on-surface-variant mt-1">Él / Ella</p>
+</div>
+</div>
+<button aria-label="Reproducir audio" class="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center border-b-[4px] border-primary-container tactile-button">
+<span class="material-symbols-outlined text-[28px]" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+<!-- Decorative Visual Break -->
+<div class="relative w-full h-[180px] rounded-[20px] overflow-hidden my-4">
+<img class="absolute inset-0 w-full h-full object-cover grayscale-[20%] opacity-80" data-alt="A lush tropical rainforest with vibrant green foliage and misty atmosphere, reflecting the natural habitat of the Kariña people. The sun filters through the canopy in soft rays, creating a warm, vibrant light-mode aesthetic. The composition is clean and modern, with deep greens and earthy tones that align with a premium educational design." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkqEPf7IYTFBh8e21xr4AXnMi_JSr14n95FzPG5L-WxgC6AhKsqn-vH5rZCu_6XITTzQ-W-tsrQx9sD82_NlJN2Ah-DeHFjgzPDpgNMujcVVsgyC7JCzDnF7CR_F4ryp6vzG4WLBt4jkIhcJGaR7CmuI-Naq25znUxeIfL3nRQ71TM8uP6e_B_Liw3s6uF3EKpp8KJx5Wyb2krufA6TXFUk2kjDBA67jSt3tQZFjZL3Tu-yfvDRpm85U_bR-1UH149H6pUegYn28_8"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent flex items-end p-6">
+<p class="text-white font-headline-md text-headline-md leading-tight">Aprende sobre la naturaleza</p>
+</div>
+</div>
+<!-- Vocabulary Card 4 -->
+<div class="group bg-surface-container-lowest border border-primary/10 rounded-[20px] p-5 shadow-[0px_4px_12px_rgba(46,125,50,0.08)] card-glow transition-all duration-300 flex items-center justify-between">
+<div class="flex flex-col gap-2">
+<span class="inline-flex w-fit bg-primary-fixed text-on-primary-fixed text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">Sustantivos</span>
+<div>
+<p class="font-karina-text text-karina-text text-on-surface">Wewe</p>
+<p class="font-spanish-translation text-spanish-translation text-on-surface-variant mt-1">Árbol</p>
+</div>
+</div>
+<button aria-label="Reproducir audio" class="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center border-b-[4px] border-primary-container tactile-button">
+<span class="material-symbols-outlined text-[28px]" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+<!-- Vocabulary Card 5 -->
+<div class="group bg-surface-container-lowest border border-primary/10 rounded-[20px] p-5 shadow-[0px_4px_12px_rgba(46,125,50,0.08)] card-glow transition-all duration-300 flex items-center justify-between">
+<div class="flex flex-col gap-2">
+<span class="inline-flex w-fit bg-primary-fixed text-on-primary-fixed text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">Sustantivos</span>
+<div>
+<p class="font-karina-text text-karina-text text-on-surface">Tuna</p>
+<p class="font-spanish-translation text-spanish-translation text-on-surface-variant mt-1">Agua</p>
+</div>
+</div>
+<button aria-label="Reproducir audio" class="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center border-b-[4px] border-primary-container tactile-button">
+<span class="material-symbols-outlined text-[28px]" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-surface-container dark:bg-surface-container-lowest shadow-[0px_-4px_12px_rgba(46,125,50,0.08)] flex justify-around items-center h-[80px] px-unit pb-safe">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="map">map</span>
+<span class="font-label-caps text-label-caps">Ruta</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-1 translate-y-[-2px] border-b-[4px] border-primary transition-all scale-105" href="#">
+<span class="material-symbols-outlined" data-icon="menu_book" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+<span class="font-label-caps text-label-caps">Vocabulario</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-caps text-label-caps">Perfil</span>
+</a>
+</nav>
+<script>
+        document.querySelectorAll('.tactile-button').forEach(button => {
+            button.addEventListener('click', () => {
+                // Micro-interaction simulation
+                button.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    button.style.transform = 'scale(1)';
+                }, 100);
+            });
+        });
+
+        // Simple scroll reveal effect for cards
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('opacity-100', 'translate-y-0');
+                    entry.target.classList.remove('opacity-0', 'translate-y-4');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.group').forEach(card => {
+            card.classList.add('transition-all', 'duration-500', 'opacity-0', 'translate-y-4');
+            observer.observe(card);
+        });
+    </script>
+</body></html>
