@@ -6,7 +6,8 @@ class VocabularyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final words = [
+    // OPTIMIZADO: Datos tipados correctamente para evitar errores de acceso
+    final List<Map<String, String>> words = [
       {'karina': 'Aau', 'spanish': 'Yo', 'category': 'Pronombres'},
       {'karina': 'Amooro', 'spanish': 'Tú', 'category': 'Pronombres'},
       {'karina': 'Mojko', 'spanish': 'Él / Ella', 'category': 'Pronombres'},
@@ -16,7 +17,7 @@ class VocabularyScreen extends StatelessWidget {
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: words.length + 1, // +1 for the banner
+      itemCount: words.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {
           return _buildBanner();
@@ -66,6 +67,11 @@ class VocabularyScreen extends StatelessWidget {
   }
 
   Widget _buildVocabularyCard(Map<String, String> word) {
+    // OPTIMIZADO [NUL-001]: Eliminación de aserciones '!' y uso de valores por defecto seguros
+    final category = (word['category'] ?? 'General').toUpperCase();
+    final karinaWord = word['karina'] ?? '---';
+    final spanishWord = word['spanish'] ?? '---';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -94,7 +100,7 @@ class VocabularyScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(99),
                 ),
                 child: Text(
-                  word['category']!.toUpperCase(),
+                  category,
                   style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -105,11 +111,11 @@ class VocabularyScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                word['karina']!,
+                karinaWord,
                 style: AppTheme.karinaTextStyle,
               ),
               Text(
-                word['spanish']!,
+                spanishWord,
                 style: AppTheme.spanishTranslationStyle,
               ),
             ],

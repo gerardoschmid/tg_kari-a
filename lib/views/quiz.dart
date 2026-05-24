@@ -45,6 +45,9 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
   late AnimationController _shakeController;
   late AudioPlayer _audioPlayer;
 
+  // OPTIMIZADO [MEM-001]: Temporizadores para limpieza en dispose
+  Timer? _matchingTransitionTimer;
+
   // For matching game
   List<Flashcard> _currentMatchingSet = [];
 
@@ -61,9 +64,10 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
 
     _audioPlayer = AudioPlayer();
 
-    // Reset game state at the start of a new lesson
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<GameProvider>().resetGame();
+      if (mounted) {
+        context.read<GameProvider>().resetGame();
+      }
     });
 
     _flashcardsFuture = _loadFlashcards();
@@ -71,6 +75,8 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
 
   @override
   void dispose() {
+    // OPTIMIZADO [MEM-001]: Cancelación de todos los procesos activos
+    _matchingTransitionTimer?.cancel();
     _shakeController.dispose();
     _audioPlayer.dispose();
     super.dispose();
@@ -95,7 +101,6 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
       debugPrint('Datos recibidos: OK (${flashcards.length} palabras)');
       _allFlashcards = List.from(flashcards)..shuffle();
 
-      // Initialize the first level
       _nextLevel();
 
       return _allFlashcards;
@@ -116,7 +121,6 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
       _selectedOption = null;
       _showSuccessAnimation = false;
 
-      // Rule: Matching only if at least 4 words remaining
       int remaining = _allFlashcards.length - _currentLevelIndex;
       debugPrint('Validación de palabras para Emparejar: $remaining palabras encontradas');
 
@@ -139,7 +143,6 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
     final currentFlashcard = _allFlashcards[_currentLevelIndex];
     Set<String> optionsSet = {currentFlashcard.karina};
 
-    // Get other words from the same deck safely
     List<String> otherWords = _allFlashcards
         .where((f) => f.karina != currentFlashcard.karina)
         .map((f) => f.karina)
@@ -147,12 +150,10 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
 
     otherWords.shuffle();
 
-    // Add up to 2 other words to make it 3 options
     for (var word in otherWords.take(2)) {
       optionsSet.add(word);
     }
 
-    // Fill with placeholders if still not enough (unlikely but safe)
     int placeholderCount = 1;
     while (optionsSet.length < 3) {
       optionsSet.add("Opción ${placeholderCount++}");
@@ -255,18 +256,21 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
   }
 
   Color _getColorFromName(String karina) {
-    // We need to find the flashcard by its karina name to get the color
-    final flashcard = _allFlashcards.firstWhere((f) => f.karina == karina);
-    final s = flashcard.spanish.toLowerCase();
-    if (s.contains('rojo')) return Colors.red;
-    if (s.contains('amarillo') || s.contains('dorado')) return Colors.yellow;
-    if (s.contains('negro') || s.contains('negra')) return Colors.black;
-    if (s.contains('verde')) return Colors.green;
-    if (s.contains('azul')) return Colors.blue;
-    if (s.contains('blanco')) return Colors.white;
-    if (s.contains('oscuro')) return Colors.grey[800]!;
-    if (s.contains('multicolor')) return Colors.orange; // Placeholder
-    return Colors.brown;
+    try {
+      final flashcard = _allFlashcards.firstWhere((f) => f.karina == karina);
+      final s = flashcard.spanish.toLowerCase();
+      if (s.contains('rojo')) return Colors.red;
+      if (s.contains('amarillo') || s.contains('dorado')) return Colors.yellow;
+      if (s.contains('negro') || s.contains('negra')) return Colors.black;
+      if (s.contains('verde')) return Colors.green;
+      if (s.contains('azul')) return Colors.blue;
+      if (s.contains('blanco')) return Colors.white;
+      if (s.contains('oscuro')) return Colors.grey[800] ?? Colors.grey;
+      if (s.contains('multicolor')) return Colors.orange;
+      return Colors.brown;
+    } catch (_) {
+      return Colors.brown;
+    }
   }
 
   Widget _buildShakeAnimation({required Widget child}) {
@@ -375,7 +379,8 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
                             onCorrect: () {},
                             onIncorrect: _onMatchingIncorrect,
                             onAllMatched: () {
-                              Timer(const Duration(milliseconds: 800), () {
+                              _matchingTransitionTimer?.cancel();
+                              _matchingTransitionTimer = Timer(const Duration(milliseconds: 800), () {
                                 if (mounted) _onMatchingComplete();
                               });
                             },
@@ -398,7 +403,7 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
                     LinearProgressIndicator(
                       value: (_currentLevelIndex + 1) / _allFlashcards.length,
                       backgroundColor: Colors.green[100],
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.green[700]!),
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.green[700] ?? Colors.green),
                     ),
                     const SizedBox(height: 20),
                     Text(
@@ -441,7 +446,7 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
                                       border: Border.all(
                                         color: isSelected
                                             ? (isCorrect ? Colors.green : Colors.red)
-                                            : Colors.grey[300]!,
+                                            : Colors.grey[300] ?? Colors.grey,
                                         width: 4,
                                       ),
                                       boxShadow: [
@@ -495,7 +500,7 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(15),
                                       side: BorderSide(
-                                        color: isSelected ? Colors.brown : Colors.grey[300]!,
+                                        color: isSelected ? Colors.brown : (Colors.grey[300] ?? Colors.grey),
                                         width: 2,
                                       ),
                                     ),
