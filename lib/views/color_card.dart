@@ -28,22 +28,31 @@ class _ColorCardState extends State<ColorCard> {
 
   @override
   void dispose() {
+    // OPTIMIZADO [MEM-001]: Asegura liberación de recursos
     _audioPlayer.dispose();
     super.dispose();
   }
 
   Future<void> _playAudio() async {
-    if (widget.flashcard.audioPath == null || widget.flashcard.audioPath!.isEmpty) return;
+    final audioPath = widget.flashcard.audioPath;
+    if (audioPath == null || audioPath.isEmpty) return;
 
     try {
-      // Check if asset exists (basic check via rootBundle)
-      await rootBundle.load(widget.flashcard.audioPath!);
-      await _audioPlayer.play(AssetSource(widget.flashcard.audioPath!.replaceFirst('assets/', '')));
+      // OPTIMIZADO [ERR-001]: Manejo defensivo mejorado para recursos de audio
+      // Se verifica la existencia del asset antes de intentar reproducirlo
+      await rootBundle.load(audioPath);
+
+      final assetPath = audioPath.replaceFirst('assets/', '');
+      await _audioPlayer.stop(); // Detiene cualquier audio previo
+      await _audioPlayer.play(AssetSource(assetPath));
     } catch (e) {
-      debugPrint('Error playing audio: $e');
+      debugPrint('Error al reproducir audio: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Archivo de audio no encontrado')),
+          SnackBar(
+            content: Text('No se pudo cargar el audio: ${widget.flashcard.karina}'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
@@ -57,8 +66,8 @@ class _ColorCardState extends State<ColorCard> {
     if (s.contains('verde')) return Colors.green;
     if (s.contains('azul')) return Colors.blue;
     if (s.contains('blanco')) return Colors.white;
-    if (s.contains('oscuro')) return Colors.grey[800]!;
-    if (s.contains('multicolor')) return Colors.orange; // Placeholder for multicolor
+    if (s.contains('oscuro')) return Colors.grey[800] ?? Colors.grey;
+    if (s.contains('multicolor')) return Colors.orange;
     return Colors.brown;
   }
 
@@ -95,25 +104,7 @@ class _ColorCardState extends State<ColorCard> {
                 flex: 3,
                 child: ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-                  child: widget.flashcard.imagePath != null
-                      ? Image.asset(
-                          widget.flashcard.imagePath!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: mainColor.withOpacity(0.3),
-                              child: Center(
-                                child: Icon(Icons.palette, size: 80, color: mainColor),
-                              ),
-                            );
-                          },
-                        )
-                      : Container(
-                          color: mainColor.withOpacity(0.3),
-                          child: Center(
-                            child: Icon(Icons.palette, size: 80, color: mainColor),
-                          ),
-                        ),
+                  child: _buildImage(mainColor),
                 ),
               ),
               // Content Area
@@ -144,7 +135,7 @@ class _ColorCardState extends State<ColorCard> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      if (widget.flashcard.audioPath != null)
+                      if (widget.flashcard.audioPath != null && widget.flashcard.audioPath!.isNotEmpty)
                         CircleAvatar(
                           backgroundColor: Colors.green[700],
                           child: IconButton(
@@ -159,6 +150,29 @@ class _ColorCardState extends State<ColorCard> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildImage(Color fallbackColor) {
+    final imagePath = widget.flashcard.imagePath;
+    if (imagePath != null && imagePath.isNotEmpty) {
+      return Image.asset(
+        imagePath,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildPlaceholder(fallbackColor);
+        },
+      );
+    }
+    return _buildPlaceholder(fallbackColor);
+  }
+
+  Widget _buildPlaceholder(Color color) {
+    return Container(
+      color: color.withOpacity(0.3),
+      child: Center(
+        child: Icon(Icons.palette, size: 80, color: color),
       ),
     );
   }
