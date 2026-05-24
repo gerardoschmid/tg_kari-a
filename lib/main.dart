@@ -10,18 +10,23 @@ void main() async {
   // OPTIMIZADO [INI-001]: Asegura que los bindings se inicialicen antes de tareas asíncronas
   WidgetsFlutterBinding.ensureInitialized();
 
-  // OPTIMIZADO [INI-001]: Inicialización de la base de datos antes de arrancar la UI
-  // Esto evita pantallas en blanco por falta de datos en el primer renderizado.
+  // OPTIMIZADO [INI-001]: Inicialización de la base de datos
   try {
     await DBHelper().db;
   } catch (e) {
     debugPrint('Error crítico al inicializar la base de datos: $e');
   }
 
+  // Pre-creamos los providers para inicializar datos críticos
+  final deckProvider = DeckProvider();
+
+  // SOLUCIÓN AL BUG DE CARGA: Aseguramos el volcado del JSON a la DB antes de runApp
+  await deckProvider.initializeProvider();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => DeckProvider()),
+        ChangeNotifierProvider.value(value: deckProvider),
         ChangeNotifierProvider(create: (context) => GameProvider()),
       ],
       child: const KarinaApp(),
@@ -38,7 +43,6 @@ class KarinaApp extends StatelessWidget {
       title: 'Kariña Learning',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      // OPTIMIZADO [INI-002]: DashboardScreen centralizado como entrada definitiva
       home: const DashboardScreen(),
     );
   }

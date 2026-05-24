@@ -16,7 +16,8 @@ class _DeckListState extends State<DeckList> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<DeckProvider>(context, listen: false).loadDecks(context);
+      // OPTIMIZADO: Eliminado el argumento posicional extra 'context'
+      Provider.of<DeckProvider>(context, listen: false).loadDecks();
     });
   }
 
@@ -83,7 +84,8 @@ class _DeckListState extends State<DeckList> {
             ),
           );
           if (mounted) {
-            Provider.of<DeckProvider>(context, listen: false).loadDecks(context);
+            // OPTIMIZADO: Eliminado el argumento posicional extra 'context'
+            Provider.of<DeckProvider>(context, listen: false).loadDecks();
           }
         },
         borderRadius: BorderRadius.circular(20),
