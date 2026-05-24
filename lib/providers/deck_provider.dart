@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:karina_app/models/deck.dart';
 import 'package:karina_app/models/flashcard.dart';
 import 'package:karina_app/utils/db_helper.dart';
@@ -11,7 +12,12 @@ class DeckProvider with ChangeNotifier {
   List<Deck> get decks => _decks;
   bool get isLoading => _isLoading;
 
-  Future<void> loadDecks(BuildContext context) async {
+  // OPTIMIZADO: Método de inicialización sin dependencia de BuildContext
+  Future<void> initializeProvider() async {
+    await loadDecks();
+  }
+
+  Future<void> loadDecks() async {
     _isLoading = true;
     notifyListeners();
 
@@ -34,8 +40,9 @@ class DeckProvider with ChangeNotifier {
     }
 
     if (loadedDecks.isEmpty) {
-      await _loadDecksJson(context);
-      await loadDecks(context); // Recursive call after initial load
+      // OPTIMIZADO: Si la DB está vacía, repoblar automáticamente desde JSON
+      await _loadDecksFromJson();
+      await loadDecks(); // Recarga después de insertar
       return;
     }
 
@@ -44,30 +51,33 @@ class DeckProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _loadDecksJson(BuildContext context) async {
-    final String jsonContent = await DefaultAssetBundle.of(context)
-        .loadString('assets/flashcards.json');
-    final List<dynamic> jsonData = json.decode(jsonContent);
+  Future<void> _loadDecksFromJson() async {
+    try {
+      // OPTIMIZADO: Uso de rootBundle para evitar error de BuildContext en el arranque
+      final String jsonContent = await rootBundle.loadString('assets/flashcards.json');
+      final List<dynamic> jsonData = json.decode(jsonContent);
 
-    for (final dynamic item in jsonData) {
-      final String title = item['title'];
-      final int deckId = await DBHelper().insert('deck', {'title': title});
+      for (final dynamic item in jsonData) {
+        final String title = item['title'];
+        final int deckId = await DBHelper().insert('deck', {'title': title});
 
-      final List<dynamic> flashcardsData = item['flashcards'] as List<dynamic>;
-      for (var fcData in flashcardsData) {
-        Flashcard flashcard = Flashcard(
-          deckId: deckId,
-          category: fcData['category'] ?? 'General',
-          spanish: fcData['spanish'],
-          karina: fcData['karina'],
-          audioPath: fcData['audioPath'],
-          imagePath: fcData['imagePath'],
-          exampleSentence: fcData['exampleSentence'],
-          difficultyLevel: fcData['difficultyLevel'] ?? 1,
-        );
-        await DBHelper().insert('flashcard', flashcard.toMap());
+        final List<dynamic> flashcardsData = item['flashcards'] as List<dynamic>;
+        for (var fcData in flashcardsData) {
+          Flashcard flashcard = Flashcard(
+            deckId: deckId,
+            category: fcData['category'] ?? 'General',
+            spanish: fcData['spanish'],
+            karina: fcData['karina'],
+            audioPath: fcData['audioPath'],
+            imagePath: fcData['imagePath'],
+            exampleSentence: fcData['exampleSentence'],
+            difficultyLevel: fcData['difficultyLevel'] ?? 1,
+          );
+          await DBHelper().insert('flashcard', flashcard.toMap());
+        }
       }
+    } catch (e) {
+      debugPrint('Error crítico al poblar la base de datos desde JSON: $e');
     }
   }
-
 }

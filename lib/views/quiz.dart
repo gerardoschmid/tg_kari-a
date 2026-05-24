@@ -9,6 +9,7 @@ import 'package:karina_app/providers/game_provider.dart';
 import 'package:karina_app/views/karina_matching_view.dart';
 import 'package:karina_app/views/game_over_screen.dart';
 import 'package:karina_app/views/quiz_results.dart';
+import 'package:karina_app/utils/quiz_controller.dart';
 import 'package:lottie/lottie.dart';
 import 'package:audioplayers/audioplayers.dart';
 
@@ -30,10 +31,9 @@ class QuizPage extends StatefulWidget {
 
 class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin {
   late Future<List<Flashcard>> _flashcardsFuture;
-  List<Flashcard> _allFlashcards = [];
-  int _currentLevelIndex = 0;
+  QuizController? _controller;
 
-  // Quiz state
+  // UI State
   List<String> _currentOptions = [];
   bool _hasAnswered = false;
   String? _selectedOption;
@@ -45,29 +45,21 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
   late AnimationController _shakeController;
   late AudioPlayer _audioPlayer;
 
-  // OPTIMIZADO [MEM-001]: Temporizadores para limpieza en dispose
   Timer? _matchingTransitionTimer;
-
-  // For matching game
   List<Flashcard> _currentMatchingSet = [];
 
   @override
   void initState() {
     super.initState();
-    debugPrint('Iniciando QuizPage para el mazo: ${widget.deckTitle}');
     _stopwatch = Stopwatch()..start();
-
     _shakeController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-
     _audioPlayer = AudioPlayer();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<GameProvider>().resetGame();
-      }
+      if (mounted) context.read<GameProvider>().resetGame();
     });
 
     _flashcardsFuture = _loadFlashcards();
@@ -75,7 +67,6 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
 
   @override
   void dispose() {
-    // OPTIMIZADO [MEM-001]: Cancelación de todos los procesos activos
     _matchingTransitionTimer?.cancel();
     _shakeController.dispose();
     _audioPlayer.dispose();
@@ -84,26 +75,16 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
 
   Future<List<Flashcard>> _loadFlashcards() async {
     try {
-      debugPrint('Cargando lección desde DB...');
-      final List<Map<String, dynamic>> maps = await DBHelper().query(
-        'flashcard',
-        where: 'deckId = ?',
-        whereArgs: [widget.deckId],
-      );
-
+      final maps = await DBHelper().query('flashcard', where: 'deckId = ?', whereArgs: [widget.deckId]);
       final flashcards = maps.map((e) => Flashcard.fromMap(e)).toList();
 
-      if (flashcards.isEmpty) {
-        debugPrint('Error: Mazo vacío');
-        throw Exception('No se encontraron palabras en este mazo.');
-      }
+      if (flashcards.isEmpty) throw Exception('No se encontraron palabras en este mazo.');
 
-      debugPrint('Datos recibidos: OK (${flashcards.length} palabras)');
-      _allFlashcards = List.from(flashcards)..shuffle();
+      final shuffledCards = List<Flashcard>.from(flashcards)..shuffle();
+      _controller = QuizController(allFlashcards: shuffledCards);
 
       _nextLevel();
-
-      return _allFlashcards;
+      return shuffledCards;
     } catch (e) {
       debugPrint('Error cargando lección: $e');
       rethrow;
@@ -111,62 +92,37 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
   }
 
   void _nextLevel() {
-    if (_currentLevelIndex >= _allFlashcards.length) {
+    if (_controller == null || _controller!.isLessonComplete) {
        _finishQuiz();
        return;
     }
+
+    if (!mounted) return;
 
     setState(() {
       _hasAnswered = false;
       _selectedOption = null;
       _showSuccessAnimation = false;
 
-      int remaining = _allFlashcards.length - _currentLevelIndex;
-      debugPrint('Validación de palabras para Emparejar: $remaining palabras encontradas');
+      int remaining = _controller!.remainingWords;
 
       if (remaining >= 4 && Random().nextBool()) {
-        debugPrint('Iniciando juego de emparejar...');
         _currentGameType = GameType.matching;
         int setSize = min(4, remaining);
-        _currentMatchingSet = _allFlashcards.sublist(_currentLevelIndex, _currentLevelIndex + setSize);
+        _currentMatchingSet = _controller!.allFlashcards.sublist(
+            _controller!.currentLevelIndex, _controller!.currentLevelIndex + setSize);
       } else {
-        debugPrint('Iniciando selección múltiple...');
         _currentGameType = GameType.multipleChoice;
-        _generateOptions();
+        _currentOptions = _controller!.generateOptions();
       }
     });
   }
 
-  void _generateOptions() {
-    if (_allFlashcards.isEmpty || _currentLevelIndex >= _allFlashcards.length) return;
-
-    final currentFlashcard = _allFlashcards[_currentLevelIndex];
-    Set<String> optionsSet = {currentFlashcard.karina};
-
-    List<String> otherWords = _allFlashcards
-        .where((f) => f.karina != currentFlashcard.karina)
-        .map((f) => f.karina)
-        .toList();
-
-    otherWords.shuffle();
-
-    for (var word in otherWords.take(2)) {
-      optionsSet.add(word);
-    }
-
-    int placeholderCount = 1;
-    while (optionsSet.length < 3) {
-      optionsSet.add("Opción ${placeholderCount++}");
-    }
-
-    _currentOptions = optionsSet.toList()..shuffle();
-  }
-
   void _checkAnswer(String option) {
-    if (_hasAnswered) return;
+    if (_hasAnswered || _controller == null) return;
 
     final gameProvider = context.read<GameProvider>();
-    final isCorrect = option == _allFlashcards[_currentLevelIndex].karina;
+    final isCorrect = _controller!.checkAnswer(option);
 
     setState(() {
       _hasAnswered = true;
@@ -175,16 +131,12 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
         _showSuccessAnimation = true;
         gameProvider.addScore(1);
         _playSound('sounds/ganar.m4a');
-        debugPrint('Reproduciendo sonido: Ganar');
       } else {
         HapticFeedback.vibrate();
         _shakeController.forward(from: 0);
         gameProvider.subtractLife();
         _playSound('sounds/perder.m4a');
-        debugPrint('Reproduciendo sonido: Perder');
-        if (gameProvider.isGameOver) {
-          _handleGameOver();
-        }
+        if (gameProvider.isGameOver) _handleGameOver();
       }
     });
   }
@@ -199,15 +151,10 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
   }
 
   void _handleGameOver() {
-    debugPrint('Juego terminado: Vidas agotadas');
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const GameOverScreen()),
-    );
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const GameOverScreen()));
   }
 
   void _finishQuiz() {
-    debugPrint('Finalizando lección...');
     _stopwatch.stop();
     final duration = _stopwatch.elapsed;
     final timeStr = "${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}";
@@ -218,7 +165,7 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
       MaterialPageRoute(
         builder: (context) => QuizResults(
           score: gameProvider.score,
-          totalQuestions: _allFlashcards.length,
+          totalQuestions: _controller?.allFlashcards.length ?? 0,
           timeSpent: timeStr,
           livesRemaining: gameProvider.lives,
         ),
@@ -227,17 +174,17 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
   }
 
   void _onMatchingComplete() {
+    if (_controller == null) return;
     final gameProvider = context.read<GameProvider>();
     int setSize = _currentMatchingSet.length;
     gameProvider.addScore(setSize);
     _playSound('sounds/ganar.m4a');
-    debugPrint('Reproduciendo sonido: Ganar');
 
     setState(() {
-      _currentLevelIndex += setSize;
+      _controller!.nextMatching(setSize);
     });
 
-    if (_currentLevelIndex >= _allFlashcards.length) {
+    if (_controller!.isLessonComplete) {
       _finishQuiz();
     } else {
       _nextLevel();
@@ -248,16 +195,14 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
     final gameProvider = context.read<GameProvider>();
     gameProvider.subtractLife();
     _playSound('sounds/perder.m4a');
-    debugPrint('Reproduciendo sonido: Perder');
     _shakeController.forward(from: 0);
-    if (gameProvider.isGameOver) {
-      _handleGameOver();
-    }
+    if (gameProvider.isGameOver) _handleGameOver();
   }
 
   Color _getColorFromName(String karina) {
+    if (_controller == null) return Colors.brown;
     try {
-      final flashcard = _allFlashcards.firstWhere((f) => f.karina == karina);
+      final flashcard = _controller!.allFlashcards.firstWhere((f) => f.karina == karina);
       final s = flashcard.spanish.toLowerCase();
       if (s.contains('rojo')) return Colors.red;
       if (s.contains('amarillo') || s.contains('dorado')) return Colors.yellow;
@@ -273,20 +218,6 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
     }
   }
 
-  Widget _buildShakeAnimation({required Widget child}) {
-    return AnimatedBuilder(
-      animation: _shakeController,
-      builder: (context, child) {
-        final double offset = sin(_shakeController.value * pi * 4) * 10;
-        return Transform.translate(
-          offset: Offset(offset, 0),
-          child: child,
-        );
-      },
-      child: child,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     bool isColorsUnit = widget.deckTitle.toLowerCase().contains('colores');
@@ -296,23 +227,7 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
         title: Text(widget.deckTitle),
         backgroundColor: Colors.green[700],
         foregroundColor: Colors.white,
-        actions: [
-          Consumer<GameProvider>(
-            builder: (context, gp, child) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                children: [
-                  const Icon(Icons.favorite, color: Colors.red),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${gp.lives}',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+        actions: [_buildLivesIndicator()],
       ),
       backgroundColor: Colors.green[50],
       body: Stack(
@@ -320,253 +235,195 @@ class _QuizPageState extends State<QuizPage> with SingleTickerProviderStateMixin
           FutureBuilder<List<Flashcard>>(
             future: _flashcardsFuture,
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('Cargando lección...', style: TextStyle(color: Colors.brown)),
-                    ],
-                  ),
-                );
-              }
+              if (snapshot.connectionState == ConnectionState.waiting) return _buildLoading();
+              if (snapshot.hasError) return _buildError(snapshot.error);
+              if (!snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text('No hay tarjetas.'));
 
-              if (snapshot.hasError) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 60, color: Colors.red),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Ocurrió un problema: ${snapshot.error}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 16, color: Colors.brown),
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Volver'),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
+              if (_currentGameType == GameType.matching) return _buildMatchingGame();
 
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Center(child: Text('No hay tarjetas disponibles.'));
-              }
-
-              if (_currentGameType == GameType.matching) {
-                return Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Empareja las palabras',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.brown),
-                      ),
-                      const SizedBox(height: 20),
-                      Expanded(
-                        child: _buildShakeAnimation(
-                          child: KarinaMatchingView(
-                            flashcards: _currentMatchingSet,
-                            onCorrect: () {},
-                            onIncorrect: _onMatchingIncorrect,
-                            onAllMatched: () {
-                              _matchingTransitionTimer?.cancel();
-                              _matchingTransitionTimer = Timer(const Duration(milliseconds: 800), () {
-                                if (mounted) _onMatchingComplete();
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              final currentFlashcard = _allFlashcards[_currentLevelIndex];
-
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    LinearProgressIndicator(
-                      value: (_currentLevelIndex + 1) / _allFlashcards.length,
-                      backgroundColor: Colors.green[100],
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.green[700] ?? Colors.green),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'Pregunta ${_currentLevelIndex + 1} de ${_allFlashcards.length}',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      '¿Cómo se dice "${currentFlashcard.spanish}" en Kariña?',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.brown,
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                    _buildShakeAnimation(
-                      child: Column(
-                        children: [
-                          if (isColorsUnit)
-                             Wrap(
-                              spacing: 20,
-                              runSpacing: 20,
-                              alignment: WrapAlignment.center,
-                              children: _currentOptions.map((option) {
-                                bool isCorrect = option == currentFlashcard.karina;
-                                bool isSelected = option == _selectedOption;
-                                Color mainColor = _getColorFromName(option);
-
-                                return GestureDetector(
-                                  onTap: () => _checkAnswer(option),
-                                  child: Container(
-                                    width: 100,
-                                    height: 100,
-                                    decoration: BoxDecoration(
-                                      color: mainColor,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? (isCorrect ? Colors.green : Colors.red)
-                                            : Colors.grey[300] ?? Colors.grey,
-                                        width: 4,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: _hasAnswered && isCorrect
-                                        ? const Icon(Icons.check, color: Colors.white, size: 50)
-                                        : (_hasAnswered && isSelected && !isCorrect
-                                            ? const Icon(Icons.close, color: Colors.white, size: 50)
-                                            : Center(
-                                                child: Text(
-                                                  option,
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    color: mainColor.computeLuminance() > 0.5 ? Colors.black : Colors.white,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                              )),
-                                  ),
-                                );
-                              }).toList(),
-                            )
-                          else
-                            ..._currentOptions.map((option) {
-                              bool isCorrect = option == currentFlashcard.karina;
-                              bool isSelected = option == _selectedOption;
-
-                              Color? btnColor = Colors.white;
-                              if (_hasAnswered) {
-                                if (isCorrect) {
-                                  btnColor = Colors.green[100];
-                                } else if (isSelected) {
-                                  btnColor = Colors.red[100];
-                                }
-                              }
-
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: btnColor,
-                                    foregroundColor: Colors.brown,
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(15),
-                                      side: BorderSide(
-                                        color: isSelected ? Colors.brown : (Colors.grey[300] ?? Colors.grey),
-                                        width: 2,
-                                      ),
-                                    ),
-                                  ),
-                                  onPressed: () => _checkAnswer(option),
-                                  child: Text(
-                                    option,
-                                    style: const TextStyle(fontSize: 18),
-                                  ),
-                                ),
-                              );
-                            }),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                    if (_hasAnswered)
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green[700],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _currentLevelIndex++;
-                          });
-                          _nextLevel();
-                        },
-                        child: Text(
-                          _currentLevelIndex < _allFlashcards.length - 1
-                              ? 'Siguiente'
-                              : 'Finalizar',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                  ],
-                ),
-              );
+              return _buildMultipleChoice(isColorsUnit);
             },
           ),
-          if (_showSuccessAnimation)
-            IgnorePointer(
-              child: Center(
-                child: Lottie.asset(
-                  'assets/animations/success.json',
-                  width: 300,
-                  height: 300,
-                  repeat: false,
-                  renderCache: RenderCache.drawingCommands,
-                  frameRate: FrameRate(30),
-                  errorBuilder: (context, error, stackTrace) {
-                    debugPrint('Estado de la animación: Error');
-                    return const Icon(Icons.check_circle, size: 100, color: Colors.green);
-                  },
-                  onLoaded: (composition) {
-                    debugPrint('Estado de la animación: Cargada');
-                  },
-                ),
-              ),
-            ),
+          if (_showSuccessAnimation) _buildSuccessAnimation(),
         ],
       ),
+    );
+  }
+
+  Widget _buildLivesIndicator() {
+    return Consumer<GameProvider>(
+      builder: (context, gp, child) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Row(
+          children: [
+            const Icon(Icons.favorite, color: Colors.red),
+            const SizedBox(width: 4),
+            Text('${gp.lives}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoading() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('Cargando lección...', style: TextStyle(color: Colors.brown)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildError(Object? error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 60, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Ocurrió un problema: $error', textAlign: TextAlign.center, style: const TextStyle(color: Colors.brown)),
+            const SizedBox(height: 24),
+            ElevatedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Volver')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMatchingGame() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          const Text('Empareja las palabras', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.brown)),
+          const SizedBox(height: 20),
+          Expanded(
+            child: _buildShakeAnimation(
+              child: KarinaMatchingView(
+                flashcards: _currentMatchingSet,
+                onCorrect: () {},
+                onIncorrect: _onMatchingIncorrect,
+                onAllMatched: () {
+                  _matchingTransitionTimer?.cancel();
+                  _matchingTransitionTimer = Timer(const Duration(milliseconds: 800), () {
+                    if (mounted) _onMatchingComplete();
+                  });
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMultipleChoice(bool isColorsUnit) {
+    if (_controller == null) return const SizedBox();
+    final currentFlashcard = _controller!.currentFlashcard;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LinearProgressIndicator(
+            value: (_controller!.currentLevelIndex + 1) / _controller!.allFlashcards.length,
+            backgroundColor: Colors.green[100],
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.green[700] ?? Colors.green),
+          ),
+          const SizedBox(height: 20),
+          Text('Pregunta ${_controller!.currentLevelIndex + 1} de ${_controller!.allFlashcards.length}', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600])),
+          const SizedBox(height: 20),
+          Text('¿Cómo se dice "${currentFlashcard.spanish}" en Kariña?', textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.brown)),
+          const SizedBox(height: 40),
+          _buildShakeAnimation(
+            child: isColorsUnit ? _buildColorOptions() : _buildTextOptions(),
+          ),
+          const SizedBox(height: 40),
+          if (_hasAnswered) _buildNextButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildColorOptions() {
+    return Wrap(
+      spacing: 20,
+      runSpacing: 20,
+      alignment: WrapAlignment.center,
+      children: _currentOptions.map((option) {
+        bool isCorrect = _controller?.checkAnswer(option) ?? false;
+        bool isSelected = option == _selectedOption;
+        Color mainColor = _getColorFromName(option);
+
+        return GestureDetector(
+          onTap: () => _checkAnswer(option),
+          child: Container(
+            width: 100, height: 100,
+            decoration: BoxDecoration(
+              color: mainColor, shape: BoxShape.circle,
+              border: Border.all(color: isSelected ? (isCorrect ? Colors.green : Colors.red) : (Colors.grey[300] ?? Colors.grey), width: 4),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))],
+            ),
+            child: _hasAnswered && isCorrect ? const Icon(Icons.check, color: Colors.white, size: 50) : (_hasAnswered && isSelected && !isCorrect ? const Icon(Icons.close, color: Colors.white, size: 50) : Center(child: Text(option, textAlign: TextAlign.center, style: TextStyle(color: mainColor.computeLuminance() > 0.5 ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontSize: 12)))),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildTextOptions() {
+    return Column(
+      children: _currentOptions.map((option) {
+        bool isCorrect = _controller?.checkAnswer(option) ?? false;
+        bool isSelected = option == _selectedOption;
+        Color? btnColor = _hasAnswered ? (isCorrect ? Colors.green[100] : (isSelected ? Colors.red[100] : Colors.white)) : Colors.white;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: btnColor, foregroundColor: Colors.brown, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: isSelected ? Colors.brown : (Colors.grey[300] ?? Colors.grey), width: 2))),
+            onPressed: () => _checkAnswer(option),
+            child: Text(option, style: const TextStyle(fontSize: 18)),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildNextButton() {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+      onPressed: () {
+        setState(() { _controller?.next(); });
+        _nextLevel();
+      },
+      child: Text(_controller != null && _controller!.currentLevelIndex < _controller!.allFlashcards.length - 1 ? 'Siguiente' : 'Finalizar', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+    );
+  }
+
+  Widget _buildSuccessAnimation() {
+    return IgnorePointer(
+      child: Center(
+        child: Lottie.asset('assets/animations/success.json', width: 300, height: 300, repeat: false, renderCache: RenderCache.drawingCommands, frameRate: FrameRate(30), errorBuilder: (context, error, stackTrace) => const Icon(Icons.check_circle, size: 100, color: Colors.green)),
+      ),
+    );
+  }
+
+  Widget _buildShakeAnimation({required Widget child}) {
+    return AnimatedBuilder(
+      animation: _shakeController,
+      builder: (context, child) {
+        final double offset = sin(_shakeController.value * pi * 4) * 10;
+        return Transform.translate(offset: Offset(offset, 0), child: child);
+      },
+      child: child,
     );
   }
 }
