@@ -4,11 +4,7 @@ import 'package:sqflite/sqflite.dart';
 
 class DBHelper {
   static const String _databaseName = 'karina_flashcards_v2.db'; // Renamed to avoid conflicts with old schema
-<<<<<<< HEAD
   static const int _databaseVersion = 3;
-=======
-  static const int _databaseVersion = 2;
->>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
 
   DBHelper._(); // private constructor (can't be called from outside)
 
@@ -38,7 +34,6 @@ class DBHelper {
         if (oldVersion < 2) {
           await db.execute('ALTER TABLE flashcard ADD COLUMN imagePath TEXT');
         }
-<<<<<<< HEAD
         if (oldVersion < 3) {
           await db.execute('''
             CREATE TABLE IF NOT EXISTS user_progress(
@@ -53,8 +48,6 @@ class DBHelper {
             )
           ''');
         }
-=======
->>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
       },
       onCreate: (Database db, int version) async {
         // create the deck table

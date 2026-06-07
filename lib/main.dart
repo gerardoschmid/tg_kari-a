@@ -6,10 +6,12 @@ import 'providers/local_provider.dart';
 import 'providers/theme_provider.dart';
 import 'package:karina_app/providers/game_provider.dart';
 import 'views/login_view.dart';
-import 'views/main_home_view.dart';
+import 'views/dashboard_screen.dart';
+import 'views/splash_screen.dart';
+import 'views/onboarding_screen.dart';
+import 'utils/app_theme.dart';
 
 void main() async {
-  // Asegura que los canales nativos de Android estén listos antes de cargar assets/DB
   WidgetsFlutterBinding.ensureInitialized();
   
   runApp(
@@ -19,106 +21,82 @@ void main() async {
         ChangeNotifierProvider(create: (_) => DeckProvider()),
         ChangeNotifierProvider(create: (_) => GameProvider()),
         ChangeNotifierProvider(create: (_) => LocalProvider()),
-<<<<<<< HEAD
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: const AppRoot(),
-=======
-      ],
-      child: const MaterialApp( // Agregado const para optimizar el árbol de widgets
-        debugShowCheckedModeBanner: false,
-        home: AuthGate(),
-      ),
->>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
     ),
   );
 }
 
-<<<<<<< HEAD
 class AppRoot extends StatelessWidget {
   const AppRoot({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final localProvider = Provider.of<LocalProvider>(context);
-
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      locale: localProvider.locale,
-      themeMode: themeProvider.themeMode,
-      
-      // Tema Claro (Earthy Light Theme)
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-        primaryColor: const Color(0xFF4A7C44),
-        scaffoldBackgroundColor: const Color(0xFFF5E6D3), // Parchement/cream
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF4A7C44),
-          brightness: Brightness.light,
-          primary: const Color(0xFF4A7C44),
-          secondary: const Color(0xFF8B5E3C),
-          surface: Colors.white,
-          background: const Color(0xFFF5E6D3),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF4A7C44),
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
-        cardTheme: CardThemeData(
-          color: Colors.white,
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        ),
-      ),
-
-      // Tema Oscuro (Earthy Dark Theme)
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        primaryColor: const Color(0xFF4A7C44),
-        scaffoldBackgroundColor: const Color(0xFF1C110C), // Café oscuro indígena
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF4A7C44),
-          brightness: Brightness.dark,
-          primary: const Color(0xFF4A7C44),
-          secondary: const Color(0xFFD2B48C),
-          surface: const Color(0xFF2A1C15),
-          background: const Color(0xFF1C110C),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF2A1C15),
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
-        cardTheme: CardThemeData(
-          color: const Color(0xFF2A1C15),
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        ),
-      ),
-      home: const AuthGate(),
+      theme: AppTheme.lightTheme,
+      home: const InitialFlow(),
     );
   }
 }
 
-=======
-// Extraemos la lógica de decisión a un widget separado para limpiar el main
->>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
-class AuthGate extends StatelessWidget {
+class InitialFlow extends StatefulWidget {
+  const InitialFlow({super.key});
+
+  @override
+  State<InitialFlow> createState() => _InitialFlowState();
+}
+
+class _InitialFlowState extends State<InitialFlow> {
+  bool _showSplash = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _hideSplash();
+  }
+
+  void _hideSplash() async {
+    await Future.delayed(const Duration(seconds: 4));
+    if (mounted) {
+      setState(() {
+        _showSplash = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_showSplash) return const SplashScreen();
+    return const AuthGate();
+  }
+}
+
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  bool _showOnboarding = true; // In production this would come from SharedPreferences
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
-<<<<<<< HEAD
-=======
-        // Esta redirección es atómica y eficiente
->>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
-        return auth.isLoggedIn ? const MainHomeView() : const LoginView();
+        if (_showOnboarding) {
+          return OnboardingScreen(
+            onFinish: () {
+              setState(() {
+                _showOnboarding = false;
+              });
+            },
+          );
+        }
+        return auth.isLoggedIn ? const DashboardScreen() : const LoginView();
       },
     );
   }

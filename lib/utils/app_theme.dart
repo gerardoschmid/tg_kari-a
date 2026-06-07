@@ -2,25 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  static const Color surface = Color(0xFFF7FBF0);
-  static const Color surfaceDim = Color(0xFFD7DBD2);
-  static const Color surfaceContainer = Color(0xFFEBEFE5);
-  static const Color onSurface = Color(0xFF181D17);
-  static const Color onSurfaceVariant = Color(0xFF40493D);
-  static const Color outline = Color(0xFF707A6C);
-  static const Color outlineVariant = Color(0xFFBFCABA);
-
-  static const Color primary = Color(0xFF0D631B);
-  static const Color onPrimary = Color(0xFFFFFFFF);
-  static const Color primaryContainer = Color(0xFF2E7D32);
-  static const Color onPrimaryContainer = Color(0xFFCBFFC2);
-
-  static const Color secondary = Color(0xFF705D00);
-  static const Color secondaryContainer = Color(0xFFFCD400);
-  static const Color onSecondaryContainer = Color(0xFF6E5C00);
-
-  static const Color tertiary = Color(0xFFAC101F);
-  static const Color error = Color(0xFFBA1A1A);
+  // Primary: #E67E22 (Naranja tierra)
+  static const Color primary = Color(0xFFE67E22);
+  // Secondary: #2D6A4F (Verde selva)
+  static const Color secondary = Color(0xFF2D6A4F);
+  // Background: #FFF8F0 (Blanco hueso/claro)
+  static const Color background = Color(0xFFFFF8F0);
+  // Surface/Cards: #FFFFFF
+  static const Color surface = Color(0xFFFFFFFF);
+  // Text Main: #4A3B32 (Marrón oscuro)
+  static const Color textMain = Color(0xFF4A3B32);
+  // Text Secondary: #7A6A5F
+  static const Color textSecondary = Color(0xFF7A6A5F);
+  // Success: #40916C
+  static const Color success = Color(0xFF40916C);
+  // Error: #BC4742
+  static const Color error = Color(0xFFBC4742);
 }
 
 class AppTheme {
@@ -29,53 +26,61 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
-        surface: AppColors.surface,
-        onSurface: AppColors.onSurface,
         primary: AppColors.primary,
-        onPrimary: AppColors.onPrimary,
         secondary: AppColors.secondary,
-        tertiary: AppColors.tertiary,
+        surface: AppColors.surface,
         error: AppColors.error,
+        onPrimary: Colors.white,
+        onSecondary: Colors.white,
+        onSurface: AppColors.textMain,
+        onError: Colors.white,
       ),
-      scaffoldBackgroundColor: AppColors.surface,
-      textTheme: GoogleFonts.plusJakartaSansTextTheme().copyWith(
-        headlineLarge: GoogleFonts.plusJakartaSans(
-          fontSize: 32,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -0.64,
-          color: AppColors.onSurface,
+      scaffoldBackgroundColor: AppColors.background,
+      textTheme: TextTheme(
+        displayLarge: GoogleFonts.poppins(
+          fontWeight: FontWeight.bold,
+          color: AppColors.textMain,
         ),
-        headlineMedium: GoogleFonts.plusJakartaSans(
-          fontSize: 24,
-          fontWeight: FontWeight.w700,
-          color: AppColors.onSurface,
+        displayMedium: GoogleFonts.poppins(
+          fontWeight: FontWeight.bold,
+          color: AppColors.textMain,
         ),
-        bodyLarge: GoogleFonts.plusJakartaSans(
-          fontSize: 18,
-          fontWeight: FontWeight.w500,
-          color: AppColors.onSurface,
+        displaySmall: GoogleFonts.poppins(
+          fontWeight: FontWeight.bold,
+          color: AppColors.textMain,
         ),
-        labelLarge: GoogleFonts.plusJakartaSans(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.6,
-          color: AppColors.primary,
+        headlineMedium: GoogleFonts.poppins(
+          fontWeight: FontWeight.bold,
+          color: AppColors.textMain,
+        ),
+        bodyLarge: GoogleFonts.nunito(
+          color: AppColors.textMain,
+        ),
+        bodyMedium: GoogleFonts.nunito(
+          color: AppColors.textMain,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: AppColors.surface,
+        elevation: 2,
+        shadowColor: Colors.black.withValues(alpha: 0.1),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
         ),
       ),
     );
   }
 
-  static TextStyle get karinaTextStyle => GoogleFonts.plusJakartaSans(
+  static TextStyle get karinaTextStyle => GoogleFonts.notoSerif(
         fontSize: 20,
-        fontWeight: FontWeight.w700,
-        color: AppColors.primary,
+        fontWeight: FontWeight.bold,
+        fontStyle: FontStyle.italic,
+        color: AppColors.textMain,
       );
 
-  static TextStyle get spanishTranslationStyle => GoogleFonts.plusJakartaSans(
+  static TextStyle get spanishTranslationStyle => GoogleFonts.nunito(
         fontSize: 16,
-        fontWeight: FontWeight.w400,
-        fontStyle: FontStyle.italic,
-        color: AppColors.onSurfaceVariant,
+        color: AppColors.textSecondary,
       );
 }
 
@@ -92,7 +97,7 @@ class TactileButton extends StatefulWidget {
     required this.child,
     required this.onPressed,
     this.backgroundColor = AppColors.primary,
-    this.bottomBorderColor = const Color(0xFF094513),
+    this.bottomBorderColor = const Color(0xFFB35E1A), // Darker version of E67E22
     this.height = 56,
     this.padding = 16,
   });
