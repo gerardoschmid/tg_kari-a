@@ -1,49 +1,75 @@
 import 'package:flutter/material.dart';
 
+/// Resultado normalizado que cualquier minijuego puede emitir.
+/// Preparado para la arquitectura Strategy (Pilar 3).
+sealed class GameResult {
+  const GameResult();
+}
+
+class GameCorrect extends GameResult {
+  final int xpEarned;
+  const GameCorrect({this.xpEarned = 1});
+}
+
+class GameIncorrect extends GameResult {
+  final String? correctAnswer;
+  const GameIncorrect({this.correctAnswer});
+}
+
+class GameSkipped extends GameResult {
+  const GameSkipped();
+}
+
+// ---------------------------------------------------------------------------
+
 class GameProvider with ChangeNotifier {
   int _lives = 5;
   int _score = 0;
-  int _coins = 125;
-  int _currentLevel = 1;
+  int _xp = 0;
   final int _maxLives = 5;
 
-  // Simulation of unlocked levels
-  final Set<int> _unlockedLevels = {1};
+  // BUG FIX: flag para evitar notifyListeners() después de dispose
+  bool _disposed = false;
 
   int get lives => _lives;
   int get score => _score;
-  int get coins => _coins;
-  int get currentLevel => _currentLevel;
+  int get xp => _xp;
   int get maxLives => _maxLives;
   bool get isGameOver => _lives <= 0;
 
-  bool isLevelUnlocked(int level) => _unlockedLevels.contains(level);
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  void _safeNotify() {
+    if (!_disposed) notifyListeners();
+  }
 
   void subtractLife() {
     if (_lives > 0) {
       _lives--;
-      notifyListeners();
+      _safeNotify();
     }
   }
 
   void addScore(int points) {
     _score += points;
-    notifyListeners();
-  }
-
-  void addCoins(int amount) {
-    _coins += amount;
-    notifyListeners();
-  }
-
-  void unlockLevel(int level) {
-    _unlockedLevels.add(level);
-    notifyListeners();
+    _xp += points * 10; // 10 XP por punto — escalable
+    _safeNotify();
   }
 
   void resetGame() {
     _lives = _maxLives;
     _score = 0;
-    notifyListeners();
+    // Nota: _xp es acumulativo entre sesiones (no se resetea aquí).
+    // Para resetear XP total, llamar resetXp() explícitamente.
+    _safeNotify();
+  }
+
+  void resetXp() {
+    _xp = 0;
+    _safeNotify();
   }
 }

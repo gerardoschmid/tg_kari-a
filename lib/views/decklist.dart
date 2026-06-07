@@ -16,8 +16,9 @@ class _DeckListState extends State<DeckList> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // OPTIMIZADO: Eliminado el argumento posicional extra 'context'
-      Provider.of<DeckProvider>(context, listen: false).loadDecks();
+      if (mounted) {
+        Provider.of<DeckProvider>(context, listen: false).loadDecks(context);
+      }
     });
   }
 
@@ -29,26 +30,52 @@ class _DeckListState extends State<DeckList> {
         elevation: 0,
         title: const Text(
           'Kariña Learning',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
       backgroundColor: Colors.green[50],
       body: Consumer<DeckProvider>(
         builder: (context, deckProvider, child) {
+          // Estado: cargando
           if (deckProvider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final localDecks = deckProvider.decks;
+          // Estado: error — BUG FIX: antes no se mostraba ningún error al usuario
+          if (deckProvider.error != null) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(
+                      deckProvider.error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16, color: Colors.brown),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () =>
+                          Provider.of<DeckProvider>(context, listen: false)
+                              .loadDecks(context),
+                      child: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
 
-          if (localDecks.isEmpty) {
+          // Estado: vacío
+          if (deckProvider.decks.isEmpty) {
             return const Center(child: Text('No hay mazos disponibles.'));
           }
 
+          // Estado: datos
           return GridView.builder(
             padding: const EdgeInsets.all(16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -57,18 +84,23 @@ class _DeckListState extends State<DeckList> {
               mainAxisSpacing: 16,
               childAspectRatio: 0.85,
             ),
-            itemCount: localDecks.length,
+            itemCount: deckProvider.decks.length,
             itemBuilder: (context, index) {
-              final deck = localDecks[index];
-              return _buildDeckCard(deck);
+              return _DeckCard(deck: deckProvider.decks[index]);
             },
           );
         },
       ),
     );
   }
+}
 
-  Widget _buildDeckCard(Deck deck) {
+class _DeckCard extends StatelessWidget {
+  final Deck deck;
+  const _DeckCard({required this.deck});
+
+  @override
+  Widget build(BuildContext context) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -83,9 +115,10 @@ class _DeckListState extends State<DeckList> {
               ),
             ),
           );
-          if (mounted) {
-            // OPTIMIZADO: Eliminado el argumento posicional extra 'context'
-            Provider.of<DeckProvider>(context, listen: false).loadDecks();
+          // Recarga tras volver, solo si el widget sigue montado
+          if (context.mounted) {
+            Provider.of<DeckProvider>(context, listen: false)
+                .loadDecks(context);
           }
         },
         borderRadius: BorderRadius.circular(20),

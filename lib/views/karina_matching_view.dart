@@ -31,23 +31,13 @@ class _KarinaMatchingViewState extends State<KarinaMatchingView> {
   Set<String> matchedSpanish = {};
   Set<String> matchedKarina = {};
 
-  Map<String, bool?> spanishStatus = {};
+  Map<String, bool?> spanishStatus = {}; // null: default, true: correct, false: incorrect
   Map<String, bool?> karinaStatus = {};
-
-  // OPTIMIZADO [MEM-001]: Referencia para cancelación de Timer
-  Timer? _incorrectFeedbackTimer;
 
   @override
   void initState() {
     super.initState();
     _setupGame();
-  }
-
-  @override
-  void dispose() {
-    // OPTIMIZADO [MEM-001]: Cancelación explícita para evitar Memory Leaks
-    _incorrectFeedbackTimer?.cancel();
-    super.dispose();
   }
 
   void _setupGame() {
@@ -76,6 +66,7 @@ class _KarinaMatchingViewState extends State<KarinaMatchingView> {
       final flashcard = widget.flashcards.firstWhere((f) => f.spanish == selectedSpanish);
 
       if (flashcard.karina == selectedKarina) {
+        // Correct match
         setState(() {
           matchedSpanish.add(selectedSpanish!);
           matchedKarina.add(selectedKarina!);
@@ -89,6 +80,7 @@ class _KarinaMatchingViewState extends State<KarinaMatchingView> {
           widget.onAllMatched();
         }
       } else {
+        // Incorrect match
         final wrongSpanish = selectedSpanish!;
         final wrongKarina = selectedKarina!;
         setState(() {
@@ -100,9 +92,7 @@ class _KarinaMatchingViewState extends State<KarinaMatchingView> {
         HapticFeedback.vibrate();
         widget.onIncorrect();
 
-        // OPTIMIZADO [MEM-001]: Control seguro del temporizador
-        _incorrectFeedbackTimer?.cancel();
-        _incorrectFeedbackTimer = Timer(const Duration(milliseconds: 500), () {
+        Timer(const Duration(milliseconds: 500), () {
           if (mounted) {
             setState(() {
               spanishStatus[wrongSpanish] = null;
@@ -150,11 +140,11 @@ class _KarinaMatchingViewState extends State<KarinaMatchingView> {
 
     Color bgColor = Colors.white;
     if (isMatched || status == true) {
-      bgColor = Colors.green[100] ?? Colors.green.shade100;
+      bgColor = Colors.green[100]!;
     } else if (status == false) {
-      bgColor = Colors.red[100] ?? Colors.red.shade100;
+      bgColor = Colors.red[100]!;
     } else if (isSelected) {
-      bgColor = Colors.blue[50] ?? Colors.blue.shade50;
+      bgColor = Colors.blue[50]!;
     }
 
     return Padding(
@@ -172,7 +162,7 @@ class _KarinaMatchingViewState extends State<KarinaMatchingView> {
               decoration: BoxDecoration(
                 color: bgColor,
                 border: Border.all(
-                  color: isSelected ? Colors.blue : (isMatched ? Colors.green : Colors.grey[300] ?? Colors.grey),
+                  color: isSelected ? Colors.blue : (isMatched ? Colors.green : Colors.grey[300]!),
                   width: 2,
                 ),
                 borderRadius: BorderRadius.circular(12),
