@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 
 class DBHelper {
   static const String _databaseName = 'karina_flashcards_v2.db'; // Renamed to avoid conflicts with old schema
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 3;
 
   DBHelper._(); // private constructor (can't be called from outside)
 
@@ -30,6 +30,25 @@ class DBHelper {
     var db = await openDatabase(
       dbPath,
       version: _databaseVersion,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE flashcard ADD COLUMN imagePath TEXT');
+        }
+        if (oldVersion < 3) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS user_progress(
+              userId TEXT PRIMARY KEY,
+              userName TEXT,
+              email TEXT,
+              level INTEGER,
+              xp INTEGER,
+              lives INTEGER,
+              lastLifeLostTime TEXT,
+              lastSyncedTime TEXT
+            )
+          ''');
+        }
+      },
       onCreate: (Database db, int version) async {
         // create the deck table
         await db.execute('''
@@ -47,9 +66,23 @@ class DBHelper {
             spanish TEXT NOT NULL,
             karina TEXT NOT NULL,
             audioPath TEXT,
+            imagePath TEXT,
             exampleSentence TEXT,
             difficultyLevel INTEGER,
             FOREIGN KEY (deckId) REFERENCES deck (id) ON DELETE CASCADE
+          )
+        ''');
+        // create the user_progress table
+        await db.execute('''
+          CREATE TABLE user_progress(
+            userId TEXT PRIMARY KEY,
+            userName TEXT,
+            email TEXT,
+            level INTEGER,
+            xp INTEGER,
+            lives INTEGER,
+            lastLifeLostTime TEXT,
+            lastSyncedTime TEXT
           )
         ''');
       }
@@ -101,5 +134,14 @@ class DBHelper {
       await txn.delete('flashcard', where: 'deckId = ?', whereArgs: [deckId]);
       await txn.delete('deck', where: 'id = ?', whereArgs: [deckId]);
     });
+  }
+
+  Future<Map<String, dynamic>?> getUserProgress(String userId) async {
+    final list = await query('user_progress', where: 'userId = ?', whereArgs: [userId]);
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  Future<void> saveUserProgress(Map<String, dynamic> progress) async {
+    await insert('user_progress', progress);
   }
 }

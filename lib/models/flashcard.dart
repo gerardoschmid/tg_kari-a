@@ -5,6 +5,7 @@ class Flashcard {
   String spanish;
   String karina;
   String? audioPath;
+  String? imagePath;
   String? exampleSentence;
   int? difficultyLevel;
 
@@ -15,6 +16,7 @@ class Flashcard {
     required this.spanish,
     required this.karina,
     this.audioPath,
+    this.imagePath,
     this.exampleSentence,
     this.difficultyLevel,
   });
@@ -27,6 +29,7 @@ class Flashcard {
       'spanish': spanish,
       'karina': karina,
       'audioPath': audioPath,
+      'imagePath': imagePath,
       'exampleSentence': exampleSentence,
       'difficultyLevel': difficultyLevel,
     };
@@ -40,6 +43,7 @@ class Flashcard {
       spanish: flashcardMap['spanish'] as String? ?? '',
       karina: flashcardMap['karina'] as String? ?? '',
       audioPath: flashcardMap['audioPath'] as String?,
+      imagePath: flashcardMap['imagePath'] as String?,
       exampleSentence: flashcardMap['exampleSentence'] as String?,
       difficultyLevel: (flashcardMap['difficultyLevel'] as num?)?.toInt() ?? 1,
     );

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "514365343974",
+    "project_id": "karina-app-7bd77",
+    "storage_bucket": "karina-app-7bd77.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:514365343974:android:dbf13161ee932b3e911327",
+        "android_client_info": {
+          "package_name": "com.example.karina_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCvVed8lDCxytnJsOfxcmPUzZGNOxp1o8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

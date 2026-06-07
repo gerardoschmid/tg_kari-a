@@ -80,5 +80,82 @@
         "difficultyLevel": 1
       }
     ]
+  },
+  {
+    "title": "Unidad II: Colores, tamaños y figuras",
+    "flashcards": [
+      {
+        "category": "Colores",
+        "spanish": "Rojo",
+        "karina": "Taapire",
+        "imagePath": "assets/images/colors/rojo.png",
+        "audioPath": "assets/sounds/colors/taapire.mp3",
+        "difficultyLevel": 1
+      },
+      {
+        "category": "Colores",
+        "spanish": "Amarillo/Dorado",
+        "karina": "Tüpuotüran",
+        "imagePath": "assets/images/colors/amarillo.png",
+        "audioPath": "assets/sounds/colors/tupuoturan.mp3",
+        "difficultyLevel": 1
+      },
+      {
+        "category": "Colores",
+        "spanish": "Negro",
+        "karina": "Tuupuru",
+        "imagePath": "assets/images/colors/negro.png",
+        "audioPath": "assets/sounds/colors/tuupuru.mp3",
+        "difficultyLevel": 1
+      },
+      {
+        "category": "Colores",
+        "spanish": "Negra (Persona)",
+        "karina": "Meekara",
+        "imagePath": "assets/images/colors/negra_persona.png",
+        "audioPath": "assets/sounds/colors/meekara.mp3",
+        "difficultyLevel": 2
+      },
+      {
+        "category": "Colores",
+        "spanish": "Verde",
+        "karina": "Azaaküra",
+        "imagePath": "assets/images/colors/verde.png",
+        "audioPath": "assets/sounds/colors/azaakura.mp3",
+        "difficultyLevel": 1
+      },
+      {
+        "category": "Colores",
+        "spanish": "Azul",
+        "karina": "Azuurü",
+        "imagePath": "assets/images/colors/azul.png",
+        "audioPath": "assets/sounds/colors/azuuru.mp3",
+        "difficultyLevel": 1
+      },
+      {
+        "category": "Colores",
+        "spanish": "Multicolor",
+        "karina": "Paara’ para’ me",
+        "imagePath": "assets/images/colors/multicolor.png",
+        "audioPath": "assets/sounds/colors/paaraparame.mp3",
+        "difficultyLevel": 2
+      },
+      {
+        "category": "Colores",
+        "spanish": "Blanco",
+        "karina": "Taamunne",
+        "imagePath": "assets/images/colors/blanco.png",
+        "audioPath": "assets/sounds/colors/taamunne.mp3",
+        "difficultyLevel": 1
+      },
+      {
+        "category": "Colores",
+        "spanish": "Oscuro/Nublado",
+        "karina": "Taaba’ rümue",
+        "imagePath": "assets/images/colors/oscuro.png",
+        "audioPath": "assets/sounds/colors/taabarumue.mp3",
+        "difficultyLevel": 2
+      }
+    ]
   }
 ]

@@ -50,7 +50,7 @@ class GameOverScreen extends StatelessWidget {
                   ),
                 ),
                 onPressed: () {
-                  context.read<GameProvider>().resetLives();
+                  context.read<GameProvider>().resetGame();
                   Navigator.of(context).popUntil((route) => route.isFirst);
                 },
                 child: const Text(
