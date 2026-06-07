@@ -19,13 +19,22 @@ void main() async {
         ChangeNotifierProvider(create: (_) => DeckProvider()),
         ChangeNotifierProvider(create: (_) => GameProvider()),
         ChangeNotifierProvider(create: (_) => LocalProvider()),
+<<<<<<< HEAD
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: const AppRoot(),
+=======
+      ],
+      child: const MaterialApp( // Agregado const para optimizar el árbol de widgets
+        debugShowCheckedModeBanner: false,
+        home: AuthGate(),
+      ),
+>>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
     ),
   );
 }
 
+<<<<<<< HEAD
 class AppRoot extends StatelessWidget {
   const AppRoot({super.key});
 
@@ -95,6 +104,9 @@ class AppRoot extends StatelessWidget {
   }
 }
 
+=======
+// Extraemos la lógica de decisión a un widget separado para limpiar el main
+>>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -102,6 +114,10 @@ class AuthGate extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
+<<<<<<< HEAD
+=======
+        // Esta redirección es atómica y eficiente
+>>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
         return auth.isLoggedIn ? const MainHomeView() : const LoginView();
       },
     );

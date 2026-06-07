@@ -106,6 +106,7 @@ class _KarinaMatchingViewState extends State<KarinaMatchingView> {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (spanishOptions.isEmpty || karinaOptions.isEmpty) {
@@ -113,6 +114,11 @@ class _KarinaMatchingViewState extends State<KarinaMatchingView> {
         child: CircularProgressIndicator(
           color: isDark ? const Color(0xFFFFD700) : const Color(0xFF4A7C44),
         ),
+=======
+    if (spanishOptions.isEmpty || karinaOptions.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(),
+>>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
       );
     }
 
@@ -121,6 +127,7 @@ class _KarinaMatchingViewState extends State<KarinaMatchingView> {
       children: [
         // ── Columna español ──────────────────────────────────────────────
         Expanded(
+<<<<<<< HEAD
           child: Column(
             children: [
               Padding(
@@ -140,11 +147,18 @@ class _KarinaMatchingViewState extends State<KarinaMatchingView> {
               ...spanishOptions.map(
                   (word) => _buildItem(word, true, isDark)),
             ],
+=======
+          child: SingleChildScrollView(
+            child: Column(
+              children: spanishOptions.map((word) => _buildItem(word, true)).toList(),
+            ),
+>>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
           ),
         ),
         const SizedBox(width: 12),
         // ── Columna Kariña ───────────────────────────────────────────────
         Expanded(
+<<<<<<< HEAD
           child: Column(
             children: [
               Padding(
@@ -164,6 +178,12 @@ class _KarinaMatchingViewState extends State<KarinaMatchingView> {
               ...karinaOptions.map(
                   (word) => _buildItem(word, false, isDark)),
             ],
+=======
+          child: SingleChildScrollView(
+            child: Column(
+              children: karinaOptions.map((word) => _buildItem(word, false)).toList(),
+            ),
+>>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
           ),
         ),
       ],

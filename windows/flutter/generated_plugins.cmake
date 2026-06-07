@@ -4,11 +4,14 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
+<<<<<<< HEAD
   cloud_firestore
   connectivity_plus
   firebase_auth
   firebase_core
   url_launcher_windows
+=======
+>>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

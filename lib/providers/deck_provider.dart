@@ -14,9 +14,17 @@ class DeckProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+<<<<<<< HEAD
   /// Carga los mazos desde la DB local e inicia la sincronización remota.
   Future<void> loadDecks(BuildContext context) async {
     if (_isLoading) return; // evita llamadas concurrentes
+=======
+  /// Carga los mazos desde la DB.
+  /// [context] solo se usa para cargar el JSON inicial; se captura antes
+  /// de cualquier await para evitar el uso de BuildContext en async gaps.
+  Future<void> loadDecks(BuildContext context) async {
+    if (_isLoading) return; // BUG FIX: evita llamadas concurrentes
+>>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
 
     _isLoading = true;
     _error = null;
@@ -27,18 +35,30 @@ class DeckProvider with ChangeNotifier {
       final flashCardData = await DBHelper().query('flashcard');
 
       if (deckData.isEmpty) {
+<<<<<<< HEAD
         final bundle = DefaultAssetBundle.of(context);
         await _loadDecksFromJson(bundle);
 
+=======
+        // BUG FIX: capturamos el bundle ANTES del primer await de escritura
+        // para no usar context después de un gap asíncrono.
+        final bundle = DefaultAssetBundle.of(context);
+        await _loadDecksFromJson(bundle);
+
+        // Segunda lectura — sin recursión
+>>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
         final freshDeckData = await DBHelper().query('deck');
         final freshFlashcardData = await DBHelper().query('flashcard');
         _decks = _buildDecks(freshDeckData, freshFlashcardData);
       } else {
         _decks = _buildDecks(deckData, flashCardData);
       }
+<<<<<<< HEAD
       
       // Sincronización en segundo plano
       _triggerBackgroundSync();
+=======
+>>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
     } catch (e, stack) {
       debugPrint('DeckProvider.loadDecks error: $e\n$stack');
       _error = 'No se pudieron cargar los mazos. Intenta de nuevo.';
@@ -48,6 +68,7 @@ class DeckProvider with ChangeNotifier {
     }
   }
 
+<<<<<<< HEAD
   void _triggerBackgroundSync() {
     SyncService().syncDecksAndFlashcards().then((_) async {
       final freshDeckData = await DBHelper().query('deck');
@@ -59,6 +80,8 @@ class DeckProvider with ChangeNotifier {
     });
   }
 
+=======
+>>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
   List<Deck> _buildDecks(
     List<Map<String, dynamic>> deckData,
     List<Map<String, dynamic>> flashCardData,
