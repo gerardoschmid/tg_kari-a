@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -35,16 +34,4 @@ class LocalProvider with ChangeNotifier {
       debugPrint("Error saving locale: $e");
     }
   }
-=======
-import 'package:flutter/material.dart';
-
-class LocalProvider with ChangeNotifier {
-  Locale _locale = const Locale('es');
-  Locale get locale => _locale;
-
-  void setLocale(Locale locale) {
-    _locale = locale;
-    notifyListeners();
-  }
->>>>>>> b4628f86043bc618fe2edcc17e759e2bb190964f
 }
